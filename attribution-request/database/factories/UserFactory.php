@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Enums\EmployeeCategory;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
@@ -12,34 +13,63 @@ use Illuminate\Support\Str;
  */
 class UserFactory extends Factory
 {
-    /**
-     * The current password being used by the factory.
-     */
     protected static ?string $password;
 
     /**
-     * Define the model's default state.
-     *
      * @return array<string, mixed>
      */
     public function definition(): array
     {
+        $firstName = fake('fr_FR')->firstName();
+        $lastName = fake('fr_FR')->lastName();
+
         return [
-            'name' => fake()->name(),
-            'email' => fake()->unique()->safeEmail(),
+            'matricule' => fake()->unique()->numerify('#####'),
+            'first_name' => $firstName,
+            'last_name' => $lastName,
+            'email' => Str::lower(Str::ascii($firstName.'.'.$lastName)).fake()->unique()->numberBetween(1, 9999).'@agl.test',
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
+            'job_title' => fake('fr_FR')->jobTitle(),
+            'category' => EmployeeCategory::Employee,
+            'is_active' => true,
             'remember_token' => Str::random(10),
+            'two_factor_secret' => null,
+            'two_factor_recovery_codes' => null,
+            'two_factor_confirmed_at' => null,
         ];
     }
 
-    /**
-     * Indicate that the model's email address should be unverified.
-     */
+    public function category(EmployeeCategory $category): static
+    {
+        return $this->state(fn () => ['category' => $category]);
+    }
+
+    public function managedBy(User $manager): static
+    {
+        return $this->state(fn () => [
+            'manager_id' => $manager->id,
+            'department_id' => $manager->department_id,
+            'site_id' => $manager->site_id,
+        ]);
+    }
+
+    public function inactive(): static
+    {
+        return $this->state(fn () => ['is_active' => false]);
+    }
+
     public function unverified(): static
     {
-        return $this->state(fn (array $attributes) => [
-            'email_verified_at' => null,
+        return $this->state(fn () => ['email_verified_at' => null]);
+    }
+
+    public function withTwoFactor(): static
+    {
+        return $this->state(fn () => [
+            'two_factor_secret' => encrypt('secret'),
+            'two_factor_recovery_codes' => encrypt(json_encode(['recovery-code-1'])),
+            'two_factor_confirmed_at' => now(),
         ]);
     }
 }
