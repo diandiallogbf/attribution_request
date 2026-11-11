@@ -21,8 +21,8 @@ class ListServiceRequests extends ListRecords
 
         return [
             'dsi' => $tab('À approuver', [RequestStatus::PendingDsi])->badgeColor('warning'),
-            'fulfilment' => $tab('À traiter', [RequestStatus::Approved, RequestStatus::Ordering, RequestStatus::ReadyForAssignment, RequestStatus::PendingReceipt]),
-            'manager' => $tab('Chez le manager', [RequestStatus::PendingManager, RequestStatus::Returned]),
+            'fulfilment' => $tab('À traiter', RequestStatus::fulfilment()),
+            'validation' => $tab('En validation', [RequestStatus::PendingManager, RequestStatus::PendingBusiness, RequestStatus::Returned]),
             'done' => $tab('Terminées', [RequestStatus::Closed, RequestStatus::Rejected, RequestStatus::Cancelled]),
             'all' => Tab::make('Toutes'),
         ];

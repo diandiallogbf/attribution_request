@@ -17,7 +17,7 @@
                     <flux:sidebar.item icon="home" :href="route('dashboard')" :current="request()->routeIs('dashboard')" wire:navigate>
                         {{ __('Tableau de bord') }}
                     </flux:sidebar.item>
-                    <flux:sidebar.item icon="plus-circle" :href="route('requests.create')" :current="request()->routeIs('requests.create', 'requests.edit')" wire:navigate>
+                    <flux:sidebar.item icon="plus-circle" :href="route('requests.create')" :current="request()->routeIs('requests.create*', 'requests.edit', 'requests.profile.edit')" wire:navigate>
                         {{ __('Nouvelle demande') }}
                     </flux:sidebar.item>
                     <flux:sidebar.item icon="document-text" :href="route('requests.index')" :current="request()->routeIs('requests.index', 'requests.show')" :badge="$navigation['open_requests'] ?: null" wire:navigate>

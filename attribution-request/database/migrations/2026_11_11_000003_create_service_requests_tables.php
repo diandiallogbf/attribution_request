@@ -19,13 +19,19 @@ return new class extends Migration
             $table->string('status')->index();
             $table->foreignId('site_id')->nullable()->constrained()->nullOnDelete();
             $table->foreignId('requester_id')->constrained('users')->restrictOnDelete();
-            $table->foreignId('beneficiary_id')->constrained('users')->restrictOnDelete();
+            // Null pour une création de profil : le nouveau collaborateur n'a pas encore de compte
+            // (son identité est dans profile_request_details puis figée dans beneficiary_snapshot).
+            $table->foreignId('beneficiary_id')->nullable()->constrained('users')->restrictOnDelete();
             // Photo figée du bénéficiaire (service, fonction, catégorie…) au moment de la soumission :
             // la fiche reste exacte même si le collaborateur change de poste ensuite.
             $table->json('beneficiary_snapshot')->nullable();
             $table->text('comment')->nullable();
             $table->timestamp('policy_accepted_at')->nullable();
             $table->timestamp('submitted_at')->nullable();
+            // « Date d'exécution / Exécuté par (Nom & Prénom IT) » des deux fiches.
+            $table->timestamp('executed_at')->nullable();
+            $table->foreignId('executed_by_id')->nullable()->constrained('users')->nullOnDelete();
+            $table->text('execution_notes')->nullable();
             $table->timestamp('closed_at')->nullable();
             $table->timestamps();
             $table->softDeletes();
@@ -51,7 +57,9 @@ return new class extends Migration
             $table->string('step');
             $table->foreignId('assigned_to_id')->nullable()->constrained('users')->nullOnDelete();
             $table->string('assigned_role')->nullable();
+            $table->foreignId('direction_id')->nullable()->constrained()->nullOnDelete(); // validation métier
             $table->string('decision')->default('pending')->index();
+            $table->timestamp('reminded_at')->nullable();
             $table->foreignId('decided_by_id')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamp('decided_at')->nullable();
             $table->text('comment')->nullable();

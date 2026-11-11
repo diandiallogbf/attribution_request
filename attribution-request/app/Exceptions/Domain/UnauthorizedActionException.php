@@ -28,6 +28,16 @@ final class UnauthorizedActionException extends DomainException
         );
     }
 
+    public static function cannotRequestForNewcomer(): self
+    {
+        return new self(__('La création de profil pour un nouveau collaborateur est réservée aux managers, chefs de service et directeurs.'));
+    }
+
+    public static function notInRole(string $action): self
+    {
+        return new self(__('Votre rôle ne permet pas de :action.', ['action' => $action]), ['action' => $action]);
+    }
+
     public function title(): string
     {
         return __('Accès refusé');

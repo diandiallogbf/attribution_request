@@ -17,6 +17,7 @@ return new class extends Migration
             $table->string('original_name');
             $table->string('mime_type', 100);
             $table->unsignedBigInteger('size');
+            $table->string('checksum', 64)->nullable(); // SHA-256 : intégrité des fiches archivées (GED)
             $table->foreignId('uploaded_by_id')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
         });

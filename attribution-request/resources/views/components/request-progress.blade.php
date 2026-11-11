@@ -1,17 +1,9 @@
 @props(['request'])
 
 @php
-    /** Les 6 étapes de la procédure (notes DSI), alignées sur RequestStatus::stage(). */
-    $stages = [
-        1 => __('Initiation'),
-        2 => __('Validation manager'),
-        3 => __('Approbation DSI'),
-        4 => __('Commande'),
-        5 => __('Attribution'),
-        6 => __('Clôture'),
-    ];
+    $stages = $request->type->stages();
     $status = $request->status;
-    $current = $status->stage();
+    $current = $status->stage($request->type);
     $stopped = in_array($status, [\App\Enums\RequestStatus::Rejected, \App\Enums\RequestStatus::Cancelled], true);
     $done = $status === \App\Enums\RequestStatus::Closed;
 @endphp

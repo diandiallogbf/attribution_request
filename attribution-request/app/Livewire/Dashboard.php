@@ -40,7 +40,7 @@ class Dashboard extends Component
     {
         return ServiceRequest::query()
             ->involving(auth()->user())
-            ->with(['beneficiary', 'phoneDetail', 'simDetail'])
+            ->with(['beneficiary', 'phoneDetail', 'simDetail', 'profileDetail'])
             ->latest('updated_at')
             ->limit(5)
             ->get();

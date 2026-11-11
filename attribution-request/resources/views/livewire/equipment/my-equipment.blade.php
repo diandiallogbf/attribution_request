@@ -31,8 +31,8 @@
                         <div><dt class="text-xs text-zinc-500">{{ __('Ancienneté') }}</dt><dd class="mt-0.5 text-zinc-900 dark:text-zinc-100">{{ $assignment->assigned_at->diffForHumans(syntax: \Carbon\CarbonInterface::DIFF_ABSOLUTE) }}</dd></div>
                     </dl>
                     <div class="flex flex-wrap gap-2 border-t border-zinc-100 bg-zinc-50/60 px-5 py-3 dark:border-white/5 dark:bg-white/[0.02]">
-                        <flux:button size="xs" variant="ghost" icon="wrench-screwdriver" :href="route('requests.create', ['motif' => 'repair'])" wire:navigate>{{ __('Signaler une panne') }}</flux:button>
-                        <flux:button size="xs" variant="ghost" icon="arrow-path" :href="route('requests.create', ['motif' => 'replacement'])" wire:navigate>{{ __('Demander un remplacement') }}</flux:button>
+                        <flux:button size="xs" variant="ghost" icon="wrench-screwdriver" :href="route('requests.create.telephony', ['motif' => 'repair'])" wire:navigate>{{ __('Signaler une panne') }}</flux:button>
+                        <flux:button size="xs" variant="ghost" icon="arrow-path" :href="route('requests.create.telephony', ['motif' => 'replacement'])" wire:navigate>{{ __('Demander un remplacement') }}</flux:button>
                     </div>
                 </article>
             @endforeach

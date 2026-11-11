@@ -18,9 +18,10 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
  * @property string $original_name
  * @property string $mime_type
  * @property int $size
+ * @property string|null $checksum
  * @property int|null $uploaded_by_id
  */
-#[Fillable(['attachable_type', 'attachable_id', 'kind', 'disk', 'path', 'original_name', 'mime_type', 'size', 'uploaded_by_id'])]
+#[Fillable(['attachable_type', 'attachable_id', 'kind', 'disk', 'path', 'original_name', 'mime_type', 'size', 'checksum', 'uploaded_by_id'])]
 class Attachment extends Model
 {
     protected function casts(): array

@@ -32,9 +32,21 @@ enum Role: string implements HasLabel
         };
     }
 
-    /** Rôles autorisés à entrer dans le back-office Filament. */
+    /** Rôles autorisés à entrer dans le back-office Filament. @return list<self> */
     public static function backOffice(): array
     {
         return [self::Admin, self::Dsi, self::ItManager, self::ItAgent, self::Assistant];
+    }
+
+    /** Commande, réception, attribution, exécution des profils (étapes 04-05). @return list<self> */
+    public static function fulfilment(): array
+    {
+        return [self::Admin, self::Dsi, self::ItManager, self::ItAgent];
+    }
+
+    /** Transmission et archivage de la fiche (étape 06 « Clôture → GED »). @return list<self> */
+    public static function archiving(): array
+    {
+        return [self::Admin, self::Dsi, self::ItManager, self::Assistant];
     }
 }

@@ -66,6 +66,18 @@ class DemoSeeder extends Seeder
         $aissatou = $this->user('Aïssatou', 'Barry', 'Superviseure de quai', EmployeeCategory::Supervisor, $dept('DEX', 'Opérations terminal'), $ckt, manager: $manager);
         $mariama = $this->user('Mariama', 'Sow', 'Agente de pointage', EmployeeCategory::Employee, $dept('DEX', 'Opérations terminal'), $ckt, manager: $manager);
 
+        // Directeurs métier : valident les accès aux applications de leur direction (fiche profil).
+        foreach ([
+            ['DT', 'Abdoulaye', 'Soumah', 'Directeur Technique', 'Maintenance'],
+            ['DAF', 'Hawa', 'Kourouma', 'Directrice Administrative et Financière', 'Comptabilité'],
+            ['DRH', 'Mariam', 'Bangoura', 'Directrice des Ressources Humaines', 'Administration du personnel'],
+            ['DILS', 'Thierno', 'Baldé', 'Directeur Logistique', 'Entreposage'],
+            ['DSHIP', 'Lansana', 'Fofana', 'Directeur Shipping', 'Agence maritime'],
+        ] as [$code, $first, $last, $title, $department]) {
+            $director = $this->user($first, $last, $title, EmployeeCategory::Director, $dept($code, $department), $agl, roles: [Role::Director]);
+            Direction::where('code', $code)->update(['director_id' => $director->id]);
+        }
+
         // Parc : équipements déjà attribués + stock disponible
         $operator = Operator::where('code', 'OGN')->firstOrFail();
         $model = fn (string $name) => DeviceModel::where('name', $name)->firstOrFail();

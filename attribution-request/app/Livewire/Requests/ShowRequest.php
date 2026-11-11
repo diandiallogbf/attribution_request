@@ -2,14 +2,21 @@
 
 namespace App\Livewire\Requests;
 
+use App\Actions\Fulfilment\ConfirmReceipt;
 use App\Actions\Requests\CancelServiceRequest;
 use App\Actions\Requests\DecideApproval;
 use App\Enums\ApprovalDecision;
+use App\Enums\RequestStatus;
+use App\Enums\RequestType;
 use App\Livewire\Concerns\HandlesDomainExceptions;
+use App\Models\Assignment;
+use App\Models\Device;
 use App\Models\ServiceRequest;
+use App\Models\SimLine;
 use App\Services\AllowanceCheck;
 use App\Services\AllowanceChecker;
 use Flux\Flux;
+use Illuminate\Support\Collection;
 use Illuminate\View\View;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Locked;
@@ -28,6 +35,8 @@ class ShowRequest extends Component
 
     public string $cancelReason = '';
 
+    public bool $receiptPolicyAccepted = false;
+
     public function mount(ServiceRequest $serviceRequest): void
     {
         $serviceRequest->load(['beneficiary', 'approvals']);
@@ -38,19 +47,31 @@ class ShowRequest extends Component
     #[Computed]
     public function serviceRequest(): ServiceRequest
     {
-        return ServiceRequest::query()
+        $request = ServiceRequest::query()
             ->with([
-                'beneficiary.department.direction', 'beneficiary.site', 'requester',
+                'beneficiary.department.direction', 'beneficiary.site', 'requester', 'executedBy',
                 'phoneDetail.previousDevice.model', 'phoneDetail.approvedDeviceModel',
-                'simDetail.existingSimLine', 'approvals.assignedTo', 'approvals.decidedBy', 'events.actor',
+                'simDetail.existingSimLine',
+                'profileDetail.applications.ownerDirection', 'profileDetail.department', 'profileDetail.site', 'profileDetail.manager',
+                'approvals.assignedTo', 'approvals.decidedBy', 'approvals.direction',
+                'events.actor', 'archivedForms', 'assignments.assignable',
             ])
             ->findOrFail($this->requestId);
+
+        $request->assignments->loadMorph('assignable', [Device::class => ['model'], SimLine::class => []]);
+
+        return $request;
     }
 
     #[Computed]
-    public function allowanceCheck(): AllowanceCheck
+    public function allowanceCheck(): ?AllowanceCheck
     {
         $request = $this->serviceRequest;
+
+        if ($request->type !== RequestType::Telephony || $request->beneficiary === null) {
+            return null;
+        }
+
         $phone = $request->phoneDetail;
 
         return app(AllowanceChecker::class)->check(
@@ -59,6 +80,20 @@ class ShowRequest extends Component
             $request->simDetail?->requested_monthly_recharge_gnf,
             isNewDevice: (bool) $phone?->reason?->requiresNewDevice(),
         );
+    }
+
+    /** Matériel remis dans le cadre de cette demande (à confirmer par le bénéficiaire). @return Collection<int, Assignment> */
+    #[Computed]
+    public function handedOver(): Collection
+    {
+        return $this->serviceRequest->assignments;
+    }
+
+    public function canConfirmReceipt(): bool
+    {
+        $request = $this->serviceRequest;
+
+        return $request->status === RequestStatus::PendingReceipt && $request->beneficiary_id === auth()->id();
     }
 
     public function openDecision(string $decision): void
@@ -94,6 +129,20 @@ class ShowRequest extends Component
         );
 
         // Navigation SPA : rafraîchit aussi les compteurs de la barre latérale (le toast est persisté).
+        $this->redirectRoute('requests.show', $this->serviceRequest, navigate: true);
+    }
+
+    public function confirmReceipt(): void
+    {
+        $this->validate(
+            ['receiptPolicyAccepted' => ['accepted']],
+            ['receiptPolicyAccepted.accepted' => __('Cochez l\'engagement pour confirmer la réception.')],
+        );
+
+        app(ConfirmReceipt::class)->handle($this->serviceRequest, auth()->user(), $this->receiptPolicyAccepted);
+
+        Flux::toast(text: __('Merci ! La demande est clôturée et la fiche archivée.'), heading: __('Réception confirmée'), variant: 'success');
+
         $this->redirectRoute('requests.show', $this->serviceRequest, navigate: true);
     }
 

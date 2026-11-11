@@ -25,13 +25,16 @@ use Illuminate\Support\Carbon;
  * @property string|null $comment
  * @property string|null $ip_address
  * @property string|null $user_agent
+ * @property int|null $direction_id
+ * @property Carbon|null $reminded_at
+ * @property-read Direction|null $direction
  * @property-read ServiceRequest $serviceRequest
  * @property-read User|null $assignedTo
  * @property-read User|null $decidedBy
  */
 #[Fillable([
-    'service_request_id', 'step', 'assigned_to_id', 'assigned_role', 'decision',
-    'decided_by_id', 'decided_at', 'comment', 'ip_address', 'user_agent',
+    'service_request_id', 'step', 'assigned_to_id', 'assigned_role', 'direction_id', 'decision',
+    'decided_by_id', 'decided_at', 'comment', 'ip_address', 'user_agent', 'reminded_at',
 ])]
 class RequestApproval extends Model
 {
@@ -45,6 +48,7 @@ class RequestApproval extends Model
             'step' => ApprovalStep::class,
             'decision' => ApprovalDecision::class,
             'decided_at' => 'datetime',
+            'reminded_at' => 'datetime',
         ];
     }
 
@@ -58,6 +62,20 @@ class RequestApproval extends Model
     public function assignedTo(): BelongsTo
     {
         return $this->belongsTo(User::class, 'assigned_to_id');
+    }
+
+    /** Direction concernée par une validation métier. @return BelongsTo<Direction, $this> */
+    public function direction(): BelongsTo
+    {
+        return $this->belongsTo(Direction::class);
+    }
+
+    /** « Validation métier — DT » */
+    public function label(): string
+    {
+        return $this->direction
+            ? $this->step->getLabel().' — '.$this->direction->code
+            : $this->step->getLabel();
     }
 
     /** @return BelongsTo<User, $this> */

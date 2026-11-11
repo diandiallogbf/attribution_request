@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Enums\ApprovalDecision;
+use App\Enums\AttachmentKind;
 use App\Enums\RequestEventType;
 use App\Enums\RequestStatus;
 use App\Enums\RequestType;
@@ -19,6 +21,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Str;
 
 /**
  * Demande (agrégat racine). Le statut ne change QUE via transitionTo(),
@@ -31,22 +34,27 @@ use Illuminate\Support\Carbon;
  * @property RequestStatus $status
  * @property int|null $site_id
  * @property int $requester_id
- * @property int $beneficiary_id
+ * @property int|null $beneficiary_id
  * @property array<string, mixed>|null $beneficiary_snapshot
  * @property string|null $comment
  * @property Carbon|null $policy_accepted_at
  * @property Carbon|null $submitted_at
+ * @property Carbon|null $executed_at
+ * @property int|null $executed_by_id
+ * @property string|null $execution_notes
  * @property Carbon|null $closed_at
  * @property Carbon $created_at
  * @property Carbon $updated_at
  * @property-read User $requester
- * @property-read User $beneficiary
+ * @property-read User|null $beneficiary
+ * @property-read User|null $executedBy
  * @property-read PhoneRequestDetail|null $phoneDetail
  * @property-read SimRequestDetail|null $simDetail
+ * @property-read ProfileRequestDetail|null $profileDetail
  */
 #[Fillable([
     'reference', 'type', 'status', 'site_id', 'requester_id', 'beneficiary_id', 'beneficiary_snapshot',
-    'comment', 'policy_accepted_at', 'submitted_at', 'closed_at',
+    'comment', 'policy_accepted_at', 'submitted_at', 'executed_at', 'executed_by_id', 'execution_notes', 'closed_at',
 ])]
 class ServiceRequest extends Model
 {
@@ -66,6 +74,7 @@ class ServiceRequest extends Model
             'beneficiary_snapshot' => 'array',
             'policy_accepted_at' => 'datetime',
             'submitted_at' => 'datetime',
+            'executed_at' => 'datetime',
             'closed_at' => 'datetime',
         ];
     }
@@ -95,6 +104,12 @@ class ServiceRequest extends Model
         return $this->belongsTo(User::class, 'beneficiary_id');
     }
 
+    /** @return BelongsTo<User, $this> */
+    public function executedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'executed_by_id');
+    }
+
     /** @return BelongsTo<Site, $this> */
     public function site(): BelongsTo
     {
@@ -111,6 +126,12 @@ class ServiceRequest extends Model
     public function simDetail(): HasOne
     {
         return $this->hasOne(SimRequestDetail::class);
+    }
+
+    /** @return HasOne<ProfileRequestDetail, $this> */
+    public function profileDetail(): HasOne
+    {
+        return $this->hasOne(ProfileRequestDetail::class);
     }
 
     /** @return HasMany<RequestApproval, $this> */
@@ -141,6 +162,12 @@ class ServiceRequest extends Model
     public function attachments(): MorphMany
     {
         return $this->morphMany(Attachment::class, 'attachable');
+    }
+
+    /** Fiche officielle archivée (PDF) à la clôture. @return MorphMany<Attachment, $this> */
+    public function archivedForms(): MorphMany
+    {
+        return $this->attachments()->where('kind', AttachmentKind::RequestForm)->latest('id');
     }
 
     // ── Scopes ───────────────────────────────────────────────────────────────
@@ -216,6 +243,36 @@ class ServiceRequest extends Model
         return $this->reference?->toStorage() ?? __('Brouillon');
     }
 
+    /** Assistant à utiliser pour reprendre ou corriger la demande. */
+    public function editUrl(): string
+    {
+        return $this->type === RequestType::UserProfile
+            ? route('requests.profile.edit', $this)
+            : route('requests.edit', $this);
+    }
+
+    /** Nom du bénéficiaire, y compris un nouveau collaborateur sans compte (création de profil). */
+    public function beneficiaryName(): string
+    {
+        if ($this->beneficiary_id !== null && $this->beneficiary !== null) {
+            return $this->beneficiary->name;
+        }
+
+        $first = $this->beneficiary_snapshot['first_name'] ?? $this->profileDetail?->first_name;
+        $last = $this->beneficiary_snapshot['last_name'] ?? $this->profileDetail?->last_name;
+
+        return trim($first.' '.Str::upper((string) $last)) ?: __('Nouveau collaborateur');
+    }
+
+    public function beneficiaryInitials(): string
+    {
+        return collect(explode(' ', $this->beneficiaryName()))
+            ->filter()
+            ->map(fn (string $part) => Str::upper(Str::substr($part, 0, 1)))
+            ->take(2)
+            ->join('');
+    }
+
     public function wantsPhone(): bool
     {
         return $this->phoneDetail !== null;
@@ -226,9 +283,15 @@ class ServiceRequest extends Model
         return $this->simDetail !== null;
     }
 
-    /** « Téléphone + ligne SIM » */
+    /** « Téléphone + ligne SIM », « Création de profil »… */
     public function subjectLabel(): string
     {
+        if ($this->type === RequestType::UserProfile) {
+            return $this->profileDetail?->action
+                ? __(':action de profil', ['action' => $this->profileDetail->action->getLabel()])
+                : __('Profil utilisateur');
+        }
+
         return match (true) {
             $this->wantsPhone() && $this->wantsSim() => __('Téléphone + ligne SIM'),
             $this->wantsPhone() => __('Téléphone'),
@@ -237,8 +300,26 @@ class ServiceRequest extends Model
         };
     }
 
+    public function subjectIcon(): string
+    {
+        return match (true) {
+            $this->type === RequestType::UserProfile => $this->profileDetail?->action?->icon() ?? 'identification',
+            $this->wantsPhone() && $this->wantsSim() => 'squares-plus',
+            $this->wantsSim() => 'signal',
+            default => 'device-phone-mobile',
+        };
+    }
+
     public function pendingApproval(): ?RequestApproval
     {
         return $this->approvals->first(fn (RequestApproval $approval) => $approval->isPending());
+    }
+
+    /** Validation en attente qui revient à cet utilisateur (plusieurs directeurs peuvent valider en parallèle). */
+    public function pendingApprovalFor(User $user): ?RequestApproval
+    {
+        return $this->approvals->first(
+            fn (RequestApproval $approval) => $approval->decision === ApprovalDecision::Pending && $approval->isAssignedTo($user),
+        );
     }
 }

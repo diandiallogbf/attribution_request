@@ -12,6 +12,7 @@ enum AttachmentKind: string implements HasLabel
     case PurchaseOrder = 'purchase_order';
     case RequestForm = 'request_form';
     case SignedReceipt = 'signed_receipt';
+    case ExecutionProof = 'execution_proof';
     case Other = 'other';
 
     public function getLabel(): string
@@ -20,6 +21,7 @@ enum AttachmentKind: string implements HasLabel
             self::PurchaseOrder => __('Bon de commande'),
             self::RequestForm => __('Fiche officielle (PDF)'),
             self::SignedReceipt => __('Accusé de réception signé'),
+            self::ExecutionProof => __('Capture / ticket d\'exécution'),
             self::Other => __('Autre document'),
         };
     }

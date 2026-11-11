@@ -21,8 +21,10 @@ enum RequestEventType: string implements HasLabel
     case Received = 'received';
     case Assigned = 'assigned';
     case ReceiptConfirmed = 'receipt_confirmed';
+    case Executed = 'executed';
     case Closed = 'closed';
     case Commented = 'commented';
+    case Reminded = 'reminded';
 
     public function getLabel(): string
     {
@@ -36,10 +38,12 @@ enum RequestEventType: string implements HasLabel
             self::Cancelled => __('Annulée'),
             self::Ordered => __('Commandée'),
             self::Received => __('Matériel réceptionné'),
-            self::Assigned => __('Attribuée'),
+            self::Assigned => __('Équipement remis'),
             self::ReceiptConfirmed => __('Réception confirmée'),
-            self::Closed => __('Clôturée'),
+            self::Executed => __('Exécutée par l\'IT'),
+            self::Closed => __('Clôturée et archivée'),
             self::Commented => __('Commentaire'),
+            self::Reminded => __('Relance envoyée'),
         };
     }
 
@@ -57,8 +61,10 @@ enum RequestEventType: string implements HasLabel
             self::Received => 'inbox-arrow-down',
             self::Assigned => 'device-phone-mobile',
             self::ReceiptConfirmed => 'hand-thumb-up',
+            self::Executed => 'wrench-screwdriver',
             self::Closed => 'archive-box',
             self::Commented => 'chat-bubble-left-ellipsis',
+            self::Reminded => 'bell-alert',
         };
     }
 
@@ -68,7 +74,7 @@ enum RequestEventType: string implements HasLabel
             self::Approved, self::ReceiptConfirmed, self::Closed => 'success',
             self::Returned => 'orange',
             self::Rejected, self::Cancelled => 'danger',
-            self::Ordered, self::Received, self::Assigned => 'violet',
+            self::Ordered, self::Received, self::Assigned, self::Executed => 'violet',
             default => 'gray',
         };
     }

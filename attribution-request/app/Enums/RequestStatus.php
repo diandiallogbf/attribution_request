@@ -8,8 +8,9 @@ use Filament\Support\Contracts\HasIcon;
 use Filament\Support\Contracts\HasLabel;
 
 /**
- * Cycle de vie d'une demande. Les transitions autorisées sont portées par l'enum :
- * toute tentative hors de ce graphe lève une InvalidTransitionException (cf. ServiceRequest::transitionTo).
+ * Cycle de vie d'une demande (téléphonie et profil utilisateur).
+ * Les transitions autorisées sont portées par l'enum : toute tentative hors de ce graphe
+ * lève une InvalidTransitionException (cf. ServiceRequest::transitionTo).
  */
 enum RequestStatus: string implements HasColor, HasIcon, HasLabel
 {
@@ -17,12 +18,14 @@ enum RequestStatus: string implements HasColor, HasIcon, HasLabel
 
     case Draft = 'draft';
     case PendingManager = 'pending_manager';
+    case PendingBusiness = 'pending_business';
     case Returned = 'returned';
     case PendingDsi = 'pending_dsi';
     case Approved = 'approved';
     case Ordering = 'ordering';
     case ReadyForAssignment = 'ready_for_assignment';
     case PendingReceipt = 'pending_receipt';
+    case Executed = 'executed';
     case Closed = 'closed';
     case Rejected = 'rejected';
     case Cancelled = 'cancelled';
@@ -32,12 +35,14 @@ enum RequestStatus: string implements HasColor, HasIcon, HasLabel
         return match ($this) {
             self::Draft => __('Brouillon'),
             self::PendingManager => __('En attente du manager'),
+            self::PendingBusiness => __('Validation métier'),
             self::Returned => __('À corriger'),
             self::PendingDsi => __('En attente DSI'),
             self::Approved => __('Approuvée'),
             self::Ordering => __('En commande'),
             self::ReadyForAssignment => __('Prête à attribuer'),
             self::PendingReceipt => __('En attente de réception'),
+            self::Executed => __('Exécutée — à transmettre'),
             self::Closed => __('Clôturée'),
             self::Rejected => __('Rejetée'),
             self::Cancelled => __('Annulée'),
@@ -49,9 +54,9 @@ enum RequestStatus: string implements HasColor, HasIcon, HasLabel
     {
         return match ($this) {
             self::Draft, self::Cancelled => 'gray',
-            self::PendingManager, self::PendingDsi => 'warning',
+            self::PendingManager, self::PendingBusiness, self::PendingDsi => 'warning',
             self::Returned => 'orange',
-            self::Approved, self::PendingReceipt => 'info',
+            self::Approved, self::PendingReceipt, self::Executed => 'info',
             self::Ordering => 'violet',
             self::ReadyForAssignment => 'primary',
             self::Closed => 'success',
@@ -63,12 +68,13 @@ enum RequestStatus: string implements HasColor, HasIcon, HasLabel
     {
         return match ($this) {
             self::Draft => 'pencil-square',
-            self::PendingManager, self::PendingDsi => 'clock',
+            self::PendingManager, self::PendingBusiness, self::PendingDsi => 'clock',
             self::Returned => 'arrow-uturn-left',
             self::Approved => 'check-badge',
             self::Ordering => 'shopping-cart',
             self::ReadyForAssignment => 'cube',
             self::PendingReceipt => 'hand-raised',
+            self::Executed => 'paper-airplane',
             self::Closed => 'check-circle',
             self::Rejected => 'x-circle',
             self::Cancelled => 'no-symbol',
@@ -84,14 +90,16 @@ enum RequestStatus: string implements HasColor, HasIcon, HasLabel
     public function allowedTransitions(): array
     {
         return match ($this) {
-            self::Draft => [self::PendingManager, self::PendingDsi, self::Cancelled],
-            self::PendingManager => [self::PendingDsi, self::Returned, self::Rejected, self::Cancelled],
-            self::Returned => [self::PendingManager, self::PendingDsi, self::Cancelled],
+            self::Draft => [self::PendingManager, self::PendingBusiness, self::PendingDsi, self::Cancelled],
+            self::PendingManager => [self::PendingBusiness, self::PendingDsi, self::Returned, self::Rejected, self::Cancelled],
+            self::Returned => [self::PendingManager, self::PendingBusiness, self::PendingDsi, self::Cancelled],
+            self::PendingBusiness => [self::PendingDsi, self::Returned, self::Rejected],
             self::PendingDsi => [self::Approved, self::Returned, self::Rejected],
-            self::Approved => [self::Ordering, self::ReadyForAssignment, self::Closed],
+            self::Approved => [self::Ordering, self::ReadyForAssignment, self::PendingReceipt, self::Executed, self::Closed],
             self::Ordering => [self::ReadyForAssignment],
-            self::ReadyForAssignment => [self::PendingReceipt],
+            self::ReadyForAssignment => [self::PendingReceipt, self::Closed],
             self::PendingReceipt => [self::Closed],
+            self::Executed => [self::Closed],
             self::Closed, self::Rejected, self::Cancelled => [],
         };
     }
@@ -114,18 +122,29 @@ enum RequestStatus: string implements HasColor, HasIcon, HasLabel
 
     public function isAwaitingApproval(): bool
     {
-        return in_array($this, [self::PendingManager, self::PendingDsi], true);
+        return in_array($this, [self::PendingManager, self::PendingBusiness, self::PendingDsi], true);
     }
 
-    /** Étape (1 à 6) de la fiche officielle à laquelle correspond ce statut, pour la frise de suivi. */
-    public function stage(): int
+    /** Étape (1 à 6) de la fiche officielle correspondant à ce statut, pour la frise de suivi. */
+    public function stage(RequestType $type = RequestType::Telephony): int
     {
+        if ($type === RequestType::UserProfile) {
+            return match ($this) {
+                self::Draft, self::Returned, self::Cancelled => 1,
+                self::PendingManager => 2,
+                self::PendingBusiness => 3,
+                self::PendingDsi, self::Rejected => 4,
+                self::Approved, self::Ordering, self::ReadyForAssignment, self::PendingReceipt, self::Executed => 5,
+                self::Closed => 6,
+            };
+        }
+
         return match ($this) {
             self::Draft, self::Returned, self::Cancelled => 1,
             self::PendingManager => 2,
-            self::PendingDsi, self::Rejected => 3,
+            self::PendingBusiness, self::PendingDsi, self::Rejected => 3,
             self::Approved, self::Ordering => 4,
-            self::ReadyForAssignment, self::PendingReceipt => 5,
+            self::ReadyForAssignment, self::PendingReceipt, self::Executed => 5,
             self::Closed => 6,
         };
     }
@@ -134,5 +153,11 @@ enum RequestStatus: string implements HasColor, HasIcon, HasLabel
     public static function open(): array
     {
         return array_values(array_filter(self::cases(), fn (self $status) => ! $status->isFinal()));
+    }
+
+    /** Statuts où la DSI / l'IT doit agir après approbation. @return list<self> */
+    public static function fulfilment(): array
+    {
+        return [self::Approved, self::Ordering, self::ReadyForAssignment, self::PendingReceipt, self::Executed];
     }
 }

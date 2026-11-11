@@ -19,18 +19,22 @@
                     <a href="{{ route('requests.show', $request) }}" wire:navigate
                        class="surface group flex flex-col gap-4 p-5 transition hover:border-zinc-300 hover:shadow-(--shadow-raised) sm:flex-row sm:items-center dark:hover:border-white/20">
                         <div class="flex min-w-0 flex-1 items-center gap-4">
-                            <flux:avatar :name="$person->name" :initials="$person->initials()" />
+                            <flux:avatar :name="$request->beneficiaryName()" :initials="$request->beneficiaryInitials()" />
                             <div class="min-w-0">
-                                <p class="truncate font-semibold text-zinc-900 dark:text-white">{{ $person->name }}
-                                    <span class="font-normal text-zinc-500">· {{ $person->job_title }}</span>
+                                <p class="truncate font-semibold text-zinc-900 dark:text-white">{{ $request->beneficiaryName() }}
+                                    <span class="font-normal text-zinc-500">· {{ $person?->job_title ?? ($request->beneficiary_snapshot['job_title'] ?? __('Nouvel arrivant')) }}</span>
                                 </p>
                                 <p class="mt-0.5 truncate text-sm text-zinc-600 dark:text-zinc-400">
+                                    <span @class(['me-1 rounded px-1.5 py-0.5 text-[11px] font-medium',
+                                        'bg-brand-50 text-brand-800 dark:bg-brand-400/10 dark:text-brand-200' => $request->type === \App\Enums\RequestType::Telephony,
+                                        'bg-violet-50 text-violet-700 dark:bg-violet-400/10 dark:text-violet-300' => $request->type === \App\Enums\RequestType::UserProfile,
+                                    ])>{{ $request->type->getLabel() }}</span>
                                     {{ $request->subjectLabel() }}
                                     @if ($request->phoneDetail?->reason) — {{ $request->phoneDetail->reason->getLabel() }} @endif
                                     @if ($request->simDetail?->requested_monthly_recharge_gnf) · {{ $request->simDetail->requested_monthly_recharge_gnf->format() }}/mois @endif
                                 </p>
                                 <p class="numeric mt-1 text-xs text-zinc-500">
-                                    <span class="font-mono">{{ $request->displayReference() }}</span> · {{ $approval->step->getLabel() }} · {{ __('soumise :ago', ['ago' => $request->submitted_at?->diffForHumans()]) }}
+                                    <span class="font-mono">{{ $request->displayReference() }}</span> · {{ $approval->label() }} · {{ __('soumise :ago', ['ago' => $request->submitted_at?->diffForHumans()]) }}
                                 </p>
                             </div>
                         </div>

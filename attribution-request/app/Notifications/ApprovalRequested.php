@@ -10,23 +10,23 @@ use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 use Illuminate\Support\Facades\Notification as NotificationFacade;
 
-/** Une validation vous attend (manager nominatif, ou tous les membres du rôle DSI). */
+/** Une validation vous attend (manager / directeur nominatif, ou tous les membres du rôle DSI). */
 class ApprovalRequested extends Notification implements ShouldQueue
 {
     use Queueable;
 
-    public function __construct(public RequestApproval $approval)
+    public function __construct(public RequestApproval $approval, public bool $reminder = false)
     {
         $this->afterCommit();
     }
 
-    public static function dispatchTo(RequestApproval $approval): void
+    public static function dispatchTo(RequestApproval $approval, bool $reminder = false): void
     {
         $recipients = $approval->assigned_to_id
             ? User::query()->whereKey($approval->assigned_to_id)->active()->get()
             : User::role($approval->assigned_role)->active()->get();
 
-        NotificationFacade::send($recipients, new self($approval));
+        NotificationFacade::send($recipients, new self($approval, $reminder));
     }
 
     /** @return list<string> */
@@ -37,21 +37,25 @@ class ApprovalRequested extends Notification implements ShouldQueue
 
     public function toMail(object $notifiable): MailMessage
     {
-        $request = $this->approval->serviceRequest->loadMissing(['beneficiary', 'requester', 'phoneDetail', 'simDetail']);
+        $approval = $this->approval->loadMissing('direction');
+        $request = $approval->serviceRequest->loadMissing(['beneficiary', 'requester', 'phoneDetail', 'simDetail', 'profileDetail']);
 
         return (new MailMessage)
-            ->subject(__('[À valider] :reference — :subject pour :name', [
+            ->subject(__(':prefix :reference — :subject pour :name', [
+                'prefix' => $this->reminder ? __('[Relance]') : __('[À valider]'),
                 'reference' => $request->displayReference(),
                 'subject' => $request->subjectLabel(),
-                'name' => $request->beneficiary->name,
+                'name' => $request->beneficiaryName(),
             ]))
             ->greeting(__('Bonjour :name,', ['name' => $notifiable->first_name]))
-            ->line(__(':requester a soumis une demande « :subject » pour :beneficiary.', [
-                'requester' => $request->requester->name,
-                'subject' => $request->subjectLabel(),
-                'beneficiary' => $request->beneficiary->name,
-            ]))
-            ->line(__('Étape attendue : :step.', ['step' => $this->approval->step->getLabel()]))
+            ->line($this->reminder
+                ? __('Cette demande attend toujours votre décision.')
+                : __(':requester a soumis une demande « :subject » pour :beneficiary.', [
+                    'requester' => $request->requester->name,
+                    'subject' => $request->subjectLabel(),
+                    'beneficiary' => $request->beneficiaryName(),
+                ]))
+            ->line(__('Étape attendue : :step.', ['step' => $approval->label()]))
             ->action(__('Examiner la demande'), route('requests.show', $request))
             ->salutation(__('Portail des demandes IT — AGL Guinée'));
     }
@@ -65,8 +69,8 @@ class ApprovalRequested extends Notification implements ShouldQueue
             'kind' => 'approval_requested',
             'request_uuid' => $request->uuid,
             'reference' => $request->displayReference(),
-            'title' => __('Validation demandée'),
-            'body' => __(':reference — :step', ['reference' => $request->displayReference(), 'step' => $this->approval->step->getLabel()]),
+            'title' => $this->reminder ? __('Relance : validation attendue') : __('Validation demandée'),
+            'body' => __(':reference — :step', ['reference' => $request->displayReference(), 'step' => $this->approval->label()]),
         ];
     }
 }

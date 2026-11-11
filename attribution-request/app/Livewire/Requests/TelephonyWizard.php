@@ -12,6 +12,7 @@ use App\Enums\PhoneReason;
 use App\Enums\PhoneType;
 use App\Enums\PlanType;
 use App\Enums\RequestStatus;
+use App\Enums\RequestType;
 use App\Enums\SimAction;
 use App\Exceptions\Domain\MissingApproverException;
 use App\Livewire\Concerns\HandlesDomainExceptions;
@@ -78,6 +79,7 @@ class TelephonyWizard extends Component
     public function mount(?ServiceRequest $serviceRequest = null): void
     {
         if ($serviceRequest?->exists) {
+            abort_unless($serviceRequest->type === RequestType::Telephony, 404);
             $this->authorize('update', $serviceRequest);
             $this->requestId = $serviceRequest->id;
             $this->isResubmission = $serviceRequest->status === RequestStatus::Returned;
@@ -340,17 +342,7 @@ class TelephonyWizard extends Component
     #[Computed]
     public function teamMembers(): Collection
     {
-        $user = auth()->user();
-
-        return User::query()
-            ->active()
-            ->whereKeyNot($user->id)
-            ->when($user->manager_id, fn ($query, int $managerId) => $query->whereKeyNot($managerId))
-            ->where(fn ($query) => $query
-                ->where('manager_id', $user->id)
-                ->orWhereIn('department_id', $user->getConnection()->table('departments')->where('head_id', $user->id)->select('id')))
-            ->orderBy('last_name')
-            ->get();
+        return app(ApproverResolver::class)->teamOf(auth()->user());
     }
 
     /** @return Collection<int, Assignment> */

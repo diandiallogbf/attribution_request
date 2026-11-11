@@ -44,8 +44,6 @@ class ServiceRequestPolicy
             return false;
         }
 
-        $approval = $request->pendingApproval();
-
-        return $approval !== null && $approval->isAssignedTo($user);
+        return $request->pendingApprovalFor($user) !== null;
     }
 }

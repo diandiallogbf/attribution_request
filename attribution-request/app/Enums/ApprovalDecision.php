@@ -15,6 +15,9 @@ enum ApprovalDecision: string implements HasColor, HasLabel
     case Returned = 'returned';
     case Rejected = 'rejected';
 
+    /** Validation devenue sans objet (demande annulée, renvoyée ou rejetée par un autre valideur). */
+    case Skipped = 'skipped';
+
     public function getLabel(): string
     {
         return match ($this) {
@@ -22,6 +25,7 @@ enum ApprovalDecision: string implements HasColor, HasLabel
             self::Approved => __('Validée'),
             self::Returned => __('Renvoyée pour correction'),
             self::Rejected => __('Rejetée'),
+            self::Skipped => __('Sans objet'),
         };
     }
 
@@ -32,6 +36,7 @@ enum ApprovalDecision: string implements HasColor, HasLabel
             self::Approved => 'success',
             self::Returned => 'orange',
             self::Rejected => 'danger',
+            self::Skipped => 'gray',
         };
     }
 
@@ -39,5 +44,11 @@ enum ApprovalDecision: string implements HasColor, HasLabel
     public function requiresComment(): bool
     {
         return in_array($this, [self::Returned, self::Rejected], true);
+    }
+
+    /** Décisions qu'un valideur peut rendre. @return list<self> */
+    public static function decisions(): array
+    {
+        return [self::Approved, self::Returned, self::Rejected];
     }
 }

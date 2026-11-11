@@ -49,7 +49,7 @@ class ServiceRequestResource extends Resource
     {
         return parent::getEloquentQuery()
             ->where('status', '!=', RequestStatus::Draft)
-            ->with(['beneficiary.department', 'site', 'phoneDetail', 'simDetail']);
+            ->with(['beneficiary.department', 'site', 'phoneDetail', 'simDetail', 'profileDetail']);
     }
 
     public static function canCreate(): bool

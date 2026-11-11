@@ -70,7 +70,7 @@ class MyRequests extends Component
         $statuses = $this->tabs()[$this->tab]['statuses'] ?? null;
 
         return $this->baseQuery()
-            ->with(['beneficiary', 'phoneDetail', 'simDetail'])
+            ->with(['beneficiary', 'phoneDetail', 'simDetail', 'profileDetail'])
             ->when($statuses, fn (Builder $query) => $query->whereIn('status', $statuses))
             ->when(trim($this->search) !== '', fn (Builder $query) => $query->where('reference', 'like', '%'.strtoupper(trim($this->search)).'%'))
             ->latest('updated_at')

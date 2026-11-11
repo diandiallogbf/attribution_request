@@ -16,13 +16,13 @@ beforeEach(function () {
 
 it('affiche l\'assistant aux collaborateurs connectés', function () {
     $this->actingAs($this->employee)
-        ->get(route('requests.create'))
+        ->get(route('requests.create.telephony'))
         ->assertOk()
         ->assertSee('Pour qui est cette demande ?');
 });
 
 it('redirige les invités vers la connexion', function () {
-    $this->get(route('requests.create'))->assertRedirect(route('login'));
+    $this->get(route('requests.create.telephony'))->assertRedirect(route('login'));
 });
 
 it('exige au moins un objet à l\'étape 2', function () {

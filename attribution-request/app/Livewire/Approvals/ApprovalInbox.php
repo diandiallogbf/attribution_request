@@ -24,6 +24,8 @@ class ApprovalInbox extends Component
                 'serviceRequest.requester',
                 'serviceRequest.phoneDetail',
                 'serviceRequest.simDetail',
+                'serviceRequest.profileDetail',
+                'direction',
             ])
             ->oldest()
             ->get()
@@ -40,6 +42,10 @@ class ApprovalInbox extends Component
         return $this->approvals->mapWithKeys(function (RequestApproval $approval) use ($checker) {
             $request = $approval->serviceRequest;
             $phone = $request->phoneDetail;
+
+            if ($request->beneficiary === null) {
+                return [$approval->id => true]; // fiche profil d'un nouvel arrivant : pas de grille de dotation
+            }
 
             return [$approval->id => $checker->check(
                 $request->beneficiary,

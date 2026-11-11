@@ -5,16 +5,55 @@ namespace Database\Seeders;
 use App\Enums\EmployeeCategory;
 use App\Enums\PhoneType;
 use App\Models\AllowanceRule;
+use App\Models\Application;
 use App\Models\DeviceModel;
+use App\Models\Direction;
 use App\Models\Operator;
 use App\Models\RechargeAmount;
 use Illuminate\Database\Seeder;
 
 class ReferentialSeeder extends Seeder
 {
+    /**
+     * Applications de la fiche F-0008. Directions propriétaires d'après les notes DSI
+     * (DT : Maximo, DRH : Amplitude, DAF : Iris, DEX : Spot) ; les autres sont PROVISOIRES
+     * et modifiables dans le back-office (Référentiels → Applications).
+     */
+    private function seedApplications(): void
+    {
+        $directions = Direction::query()->pluck('id', 'code');
+
+        $applications = [
+            // code, nom, description, direction, validation métier
+            ['APACHE', 'Apache', 'Serveur web / intranet', null, false],
+            ['AMPLITUDE', 'Amplitude', 'Paie et gestion RH', 'DRH', true],
+            ['OSCAR', 'Oscar', 'Comptabilité', 'DAF', true],
+            ['SPOT', 'Spot', 'Exploitation terminal', 'DEX', true],
+            ['ALIS', 'ALIS', 'Logistique', 'DILS', true],
+            ['SYDONIA', 'Sydonia', 'Dédouanement (SYDONIA World)', 'DSHIP', true],
+            ['IPAKI', 'Ipaki', 'Gestion des stocks', 'DILS', true],
+            ['IRIS', 'Iris / Neptune', 'Finance et achats', 'DAF', true],
+            ['MAXIMO', 'Maximo', 'Maintenance des équipements', 'DT', true],
+            ['SERVAL', 'Serval', 'Shipping', 'DSHIP', true],
+        ];
+
+        foreach ($applications as $order => [$code, $name, $description, $direction, $businessApproval]) {
+            Application::updateOrCreate(['code' => $code], [
+                'name' => $name,
+                'description' => $description,
+                'owner_direction_id' => $direction ? $directions[$direction] ?? null : null,
+                'requires_business_approval' => $businessApproval,
+                'is_active' => true,
+                'sort_order' => $order,
+            ]);
+        }
+    }
+
     public function run(): void
     {
         Operator::updateOrCreate(['code' => 'OGN'], ['name' => 'Orange Guinée']);
+
+        $this->seedApplications();
 
         // Montants de la fiche AGL-GIN-DSI-F-0015 (recharge mensuelle).
         foreach ([10_000, 25_000, 50_000, 100_000, 200_000, 250_000, 300_000, 350_000, 400_000, 450_000,

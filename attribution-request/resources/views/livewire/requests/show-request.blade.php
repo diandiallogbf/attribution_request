@@ -1,21 +1,18 @@
 @use('App\Enums\ApprovalDecision')
 @use('App\Enums\RequestStatus')
+@use('App\Enums\RequestType')
 
 @php
     $request = $this->serviceRequest;
     $status = $request->status;
-    $snapshot = $request->beneficiary_snapshot;
-    $person = $request->beneficiary;
-    $phone = $request->phoneDetail;
-    $sim = $request->simDetail;
-    $check = $this->allowanceCheck;
-    $canDecide = auth()->user()->can('decide', $request);
-    $canEdit = auth()->user()->can('update', $request);
-    $canCancel = auth()->user()->can('cancel', $request);
+    $user = auth()->user();
+    $canDecide = $user->can('decide', $request);
+    $canEdit = $user->can('update', $request);
+    $canCancel = $user->can('cancel', $request);
+    $myApproval = $request->pendingApprovalFor($user);
     $lastDecision = $request->approvals->whereIn('decision', [ApprovalDecision::Returned, ApprovalDecision::Rejected])->sortByDesc('decided_at')->first();
-    $categoryLabel = isset($snapshot['category'])
-        ? \App\Enums\EmployeeCategory::tryFrom($snapshot['category'])?->getLabel()
-        : $person->category?->getLabel();
+    $isProfile = $request->type === RequestType::UserProfile;
+    $archived = $request->archivedForms->first();
 @endphp
 
 <div>
@@ -32,12 +29,17 @@
     @endif
 
     <x-page-header :back="route('requests.index')"
-        :eyebrow="__('Demande de téléphonie').' · '.$request->displayReference()"
-        :title="$request->subjectLabel().($request->beneficiary_id !== auth()->id() ? ' — '.$person->name : '')">
+        :eyebrow="$request->type->formTitle().' · '.$request->displayReference()"
+        :title="$request->subjectLabel().($request->beneficiary_id !== $user->id ? ' — '.$request->beneficiaryName() : '')">
         <x-slot:actions>
             <x-status-badge :status="$status" size="md" />
+            @if ($status !== RequestStatus::Draft)
+                <flux:button size="sm" variant="ghost" icon="document-arrow-down" :href="route('requests.form', $request)" target="_blank">
+                    {{ $archived ? __('Fiche archivée') : __('Aperçu de la fiche') }}
+                </flux:button>
+            @endif
             @if ($canEdit)
-                <flux:button size="sm" icon="pencil-square" :href="route('requests.edit', $request)" wire:navigate>
+                <flux:button size="sm" icon="pencil-square" :href="$request->editUrl()" wire:navigate>
                     {{ $status === RequestStatus::Returned ? __('Corriger') : __('Reprendre') }}
                 </flux:button>
             @endif
@@ -50,16 +52,16 @@
     </x-page-header>
 
     {{-- Décision attendue --}}
-    @if ($canDecide)
+    @if ($canDecide && $myApproval)
         <section class="mb-6 overflow-hidden rounded-xl border border-brand-200 bg-linear-to-r from-brand-50 to-white shadow-(--shadow-card) dark:border-brand-300/20 dark:from-brand-400/10 dark:to-zinc-900">
             <div class="flex flex-col gap-4 px-5 py-5 sm:flex-row sm:items-center">
-                <span class="flex size-11 shrink-0 items-center justify-center rounded-full bg-brand-800 text-white dark:bg-brand-300 dark:text-brand-950">
+                <span class="flex size-11 shrink-0 items-center justify-center rounded-full bg-brand-800 text-white dark:bg-brand-500">
                     <flux:icon.check-badge class="size-6" />
                 </span>
                 <div class="min-w-0 flex-1">
                     <p class="font-semibold text-zinc-900 dark:text-white">{{ __('Votre décision est attendue') }}</p>
                     <p class="text-sm text-zinc-600 dark:text-zinc-400">
-                        {{ $request->pendingApproval()?->step->getLabel() }} ·
+                        {{ $myApproval->label() }} ·
                         {{ __('soumise par :name :ago', ['name' => $request->requester->name, 'ago' => $request->submitted_at?->diffForHumans()]) }}
                     </p>
                 </div>
@@ -69,6 +71,40 @@
                     <flux:button size="sm" variant="primary" icon="check" wire:click="openDecision('approved')">{{ __('Valider') }}</flux:button>
                 </div>
             </div>
+        </section>
+    @endif
+
+    {{-- Confirmation de réception (bénéficiaire) --}}
+    @if ($this->canConfirmReceipt())
+        <section class="mb-6 overflow-hidden rounded-xl border border-emerald-200 bg-white shadow-(--shadow-card) dark:border-emerald-400/20 dark:bg-zinc-900">
+            <div class="flex items-center gap-3 border-b border-emerald-100 bg-emerald-50 px-5 py-4 dark:border-emerald-400/10 dark:bg-emerald-400/5">
+                <flux:icon.gift class="size-5 text-emerald-700 dark:text-emerald-300" />
+                <div>
+                    <p class="font-semibold text-emerald-900 dark:text-emerald-200">{{ __('Votre matériel est prêt') }}</p>
+                    <p class="text-sm text-emerald-800/80 dark:text-emerald-200/70">{{ __('Vérifiez-le, puis confirmez la réception : la demande sera clôturée et la fiche archivée.') }}</p>
+                </div>
+            </div>
+            <div class="grid gap-3 px-5 py-4 sm:grid-cols-2">
+                @foreach ($this->handedOver as $assignment)
+                    @php $item = $assignment->assignable; @endphp
+                    <div class="flex items-center gap-3 rounded-lg border border-zinc-200 px-4 py-3 dark:border-white/10">
+                        <flux:icon :icon="$item instanceof \App\Models\Device ? 'device-phone-mobile' : 'signal'" class="size-5 text-zinc-400" />
+                        <div class="min-w-0 text-sm">
+                            <p class="truncate font-semibold text-zinc-900 dark:text-white">{{ $item instanceof \App\Models\Device ? $item->model->label : $item->msisdn->international() }}</p>
+                            <p class="numeric truncate text-xs text-zinc-500">
+                                {{ $item instanceof \App\Models\Device ? ($item->imei ? 'IMEI '.$item->imei->formatted() : $item->serial_number) : $item->plan_type->getLabel().($item->monthly_recharge_gnf ? ' · '.$item->monthly_recharge_gnf->format().'/mois' : '') }}
+                            </p>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+            <form wire:submit="confirmReceipt" class="flex flex-col gap-4 border-t border-zinc-100 px-5 py-4 sm:flex-row sm:items-center dark:border-white/5">
+                <div class="flex-1">
+                    <flux:checkbox wire:model="receiptPolicyAccepted" :label="__('Je m\'engage sans réserve à respecter la procédure de gestion de la téléphonie.')" />
+                    <x-field-error name="receiptPolicyAccepted" />
+                </div>
+                <flux:button type="submit" variant="primary" icon="hand-thumb-up">{{ __('Je confirme la réception') }}</flux:button>
+            </form>
         </section>
     @endif
 
@@ -85,7 +121,9 @@
     <section class="surface mb-6 px-5 py-5">
         <div class="mb-4 flex items-center justify-between gap-4">
             <h2 class="text-sm font-semibold text-zinc-900 dark:text-white">{{ __('Avancement') }}</h2>
-            @if ($request->submitted_at)
+            @if ($request->closed_at)
+                <p class="text-xs text-zinc-500">{{ __('Clôturée le :date', ['date' => $request->closed_at->translatedFormat('d F Y à H:i')]) }}</p>
+            @elseif ($request->submitted_at)
                 <p class="text-xs text-zinc-500">{{ __('Soumise le :date', ['date' => $request->submitted_at->translatedFormat('d F Y à H:i')]) }}</p>
             @endif
         </div>
@@ -94,100 +132,20 @@
 
     <div class="grid gap-6 lg:grid-cols-3">
         <div class="space-y-6 lg:col-span-2">
-            {{-- Bénéficiaire --}}
-            <section class="surface">
-                <header class="flex items-center gap-2 border-b border-zinc-200 px-5 py-4 dark:border-white/10">
-                    <flux:icon.user variant="micro" class="size-4 text-zinc-400" />
-                    <h2 class="text-sm font-semibold text-zinc-900 dark:text-white">{{ __('Information de l\'utilisateur') }}</h2>
-                </header>
-                <dl class="grid gap-x-8 gap-y-4 px-5 py-5 text-sm sm:grid-cols-3">
-                    @foreach ([
-                        __('Nom') => $person->name,
-                        __('Matricule') => $snapshot['matricule'] ?? $person->matricule,
-                        __('Catégorie') => $categoryLabel,
-                        __('Fonction') => $snapshot['job_title'] ?? $person->job_title,
-                        __('Service') => $snapshot['department'] ?? $person->department?->name,
-                        __('Site') => $snapshot['site'] ?? $person->site?->name,
-                    ] as $label => $value)
-                        <div class="min-w-0">
-                            <dt class="text-xs text-zinc-500 dark:text-zinc-400">{{ $label }}</dt>
-                            <dd class="numeric mt-0.5 truncate font-medium text-zinc-900 dark:text-zinc-100">{{ $value ?: '—' }}</dd>
-                        </div>
-                    @endforeach
-                </dl>
-                @if ($request->requester_id !== $request->beneficiary_id)
-                    <p class="border-t border-zinc-100 px-5 py-3 text-xs text-zinc-500 dark:border-white/5">{{ __('Demande initiée par :name', ['name' => $request->requester->name]) }}</p>
-                @endif
-            </section>
+            @include($isProfile ? 'livewire.requests.show.profile' : 'livewire.requests.show.telephony')
 
-            {{-- Téléphone --}}
-            @if ($phone)
-                <section class="surface">
-                    <header class="flex items-center gap-2 border-b border-zinc-200 px-5 py-4 dark:border-white/10">
-                        <flux:icon.device-phone-mobile variant="micro" class="size-4 text-zinc-400" />
-                        <h2 class="text-sm font-semibold text-zinc-900 dark:text-white">{{ __('Information téléphone') }}</h2>
-                        @if ($phone->reason?->requiresNewDevice() && $phone->requested_phone_type && $check->rule)
-                            @php $inGrid = $check->rule->allowsPhoneType($phone->requested_phone_type); @endphp
-                            <span @class([
-                                'ms-auto rounded-md px-1.5 py-0.5 text-[11px] font-medium ring-1 ring-inset',
-                                'bg-emerald-50 text-emerald-700 ring-emerald-600/20 dark:bg-emerald-400/10 dark:text-emerald-300' => $inGrid,
-                                'bg-amber-50 text-amber-800 ring-amber-600/20 dark:bg-amber-400/10 dark:text-amber-300' => ! $inGrid,
-                            ])>{{ $inGrid ? __('Conforme à la dotation') : __('Hors grille') }}</span>
-                        @endif
-                    </header>
-                    <dl class="grid gap-x-8 gap-y-4 px-5 py-5 text-sm sm:grid-cols-3">
-                        <div><dt class="text-xs text-zinc-500">{{ __('Motif') }}</dt><dd class="mt-0.5 font-medium text-zinc-900 dark:text-zinc-100">{{ $phone->reason?->getLabel() ?? '—' }}</dd></div>
-                        @if ($phone->reason?->requiresNewDevice())
-                            <div><dt class="text-xs text-zinc-500">{{ __('Type souhaité') }}</dt><dd class="mt-0.5 font-medium text-zinc-900 dark:text-zinc-100">{{ $phone->requestedTypeLabel() ?? '—' }}</dd></div>
-                        @endif
-                        @if ($phone->reason?->requiresPreviousDevice())
-                            <div><dt class="text-xs text-zinc-500">{{ __('Appareil concerné') }}</dt><dd class="mt-0.5 font-medium text-zinc-900 dark:text-zinc-100">{{ $phone->previousDevice?->label ?? trim($phone->previous_device_label.' '.$phone->previous_device_serial) ?: '—' }}</dd></div>
-                        @endif
-                        @if ($phone->approvedDeviceModel)
-                            <div><dt class="text-xs text-zinc-500">{{ __('Modèle retenu par la DSI') }}</dt><dd class="mt-0.5 font-medium text-zinc-900 dark:text-zinc-100">{{ $phone->approvedDeviceModel->label }}</dd></div>
-                        @endif
-                        <div class="sm:col-span-3"><dt class="text-xs text-zinc-500">{{ __('Motif détaillé') }}</dt><dd class="mt-1 whitespace-pre-line text-zinc-800 dark:text-zinc-200">{{ $phone->detailed_reason ?: '—' }}</dd></div>
-                    </dl>
-                </section>
-            @endif
-
-            {{-- Ligne SIM --}}
-            @if ($sim)
-                <section class="surface">
-                    <header class="flex items-center gap-2 border-b border-zinc-200 px-5 py-4 dark:border-white/10">
-                        <flux:icon.signal variant="micro" class="size-4 text-zinc-400" />
-                        <h2 class="text-sm font-semibold text-zinc-900 dark:text-white">{{ __('Information numéro (SIM)') }}</h2>
-                        @if ($sim->requested_monthly_recharge_gnf && $check->rule)
-                            @php $okRecharge = $check->rule->allowsRecharge($sim->requested_monthly_recharge_gnf); @endphp
-                            <span @class([
-                                'ms-auto rounded-md px-1.5 py-0.5 text-[11px] font-medium ring-1 ring-inset',
-                                'bg-emerald-50 text-emerald-700 ring-emerald-600/20 dark:bg-emerald-400/10 dark:text-emerald-300' => $okRecharge,
-                                'bg-amber-50 text-amber-800 ring-amber-600/20 dark:bg-amber-400/10 dark:text-amber-300' => ! $okRecharge,
-                            ])>{{ $okRecharge ? __('Recharge conforme') : __('Recharge hors plafond') }}</span>
-                        @endif
-                    </header>
-                    <dl class="grid gap-x-8 gap-y-4 px-5 py-5 text-sm sm:grid-cols-3">
-                        <div><dt class="text-xs text-zinc-500">{{ __('Action') }}</dt><dd class="mt-0.5 font-medium text-zinc-900 dark:text-zinc-100">{{ $sim->action?->getLabel() ?? '—' }}</dd></div>
-                        @if ($sim->action?->requiresExistingLine())
-                            <div><dt class="text-xs text-zinc-500">{{ __('Ligne concernée') }}</dt><dd class="numeric mt-0.5 font-medium text-zinc-900 dark:text-zinc-100">{{ $sim->existingSimLine?->msisdn->international() ?? $sim->existing_msisdn?->international() ?? '—' }}</dd></div>
-                        @endif
-                        @if ($sim->action?->requiresPlan())
-                            <div><dt class="text-xs text-zinc-500">{{ __('Forfait') }}</dt><dd class="mt-0.5 font-medium text-zinc-900 dark:text-zinc-100">{{ $sim->plan_type?->getLabel() ?? '—' }}</dd></div>
-                            <div><dt class="text-xs text-zinc-500">{{ __('Recharge mensuelle') }}</dt><dd class="numeric mt-0.5 font-medium text-zinc-900 dark:text-zinc-100">{{ $sim->requested_monthly_recharge_gnf?->format() ?? '—' }}</dd></div>
-                            <div class="sm:col-span-2"><dt class="text-xs text-zinc-500">{{ __('Options') }}</dt>
-                                <dd class="mt-1 flex flex-wrap gap-1.5">
-                                    @forelse ($sim->options ?? [] as $option)
-                                        <span class="rounded-md bg-brand-50 px-2 py-0.5 text-xs font-medium text-brand-800 ring-1 ring-brand-700/15 dark:bg-brand-400/10 dark:text-brand-200">{{ $option->code() }} · {{ $option->getLabel() }}</span>
-                                    @empty
-                                        <span class="text-zinc-500">{{ __('Aucune') }}</span>
-                                    @endforelse
-                                </dd>
-                            </div>
-                        @endif
-                        @if ($sim->entity)
-                            <div><dt class="text-xs text-zinc-500">{{ __('Entité') }}</dt><dd class="mt-0.5 font-medium text-zinc-900 dark:text-zinc-100">{{ $sim->entity }}</dd></div>
-                        @endif
-                    </dl>
+            @if ($request->executed_at)
+                <section class="surface px-5 py-4">
+                    <div class="flex items-center gap-2 text-sm font-semibold text-zinc-900 dark:text-white">
+                        <flux:icon.wrench-screwdriver variant="micro" class="size-4 text-zinc-400" /> {{ __('Exécution') }}
+                    </div>
+                    <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-300">
+                        {{ __('Exécutée le :date par :name', ['date' => $request->executed_at->translatedFormat('d F Y à H:i'), 'name' => $request->executedBy?->name]) }}
+                        @if ($request->profileDetail?->execution_ticket) · {{ __('Ticket') }} <span class="font-mono">{{ $request->profileDetail->execution_ticket }}</span> @endif
+                    </p>
+                    @if ($request->execution_notes)
+                        <p class="mt-2 rounded-lg bg-zinc-50 px-3 py-2 text-[13px] text-zinc-700 dark:bg-white/5 dark:text-zinc-300">{{ $request->execution_notes }}</p>
+                    @endif
                 </section>
             @endif
 
@@ -210,7 +168,7 @@
                         <li class="flex items-start gap-3 px-5 py-3.5">
                             <x-status-badge :status="$approval->decision" class="mt-0.5" />
                             <div class="min-w-0 text-sm">
-                                <p class="font-medium text-zinc-900 dark:text-white">{{ $approval->step->getLabel() }}</p>
+                                <p class="font-medium text-zinc-900 dark:text-white">{{ $approval->label() }}</p>
                                 <p class="truncate text-xs text-zinc-500">
                                     @if ($approval->decidedBy)
                                         {{ $approval->decidedBy->name }} · {{ $approval->decided_at?->translatedFormat('d M Y, H:i') }}
@@ -225,6 +183,19 @@
                     @endforelse
                 </ul>
             </section>
+
+            @if ($archived)
+                <a href="{{ route('requests.form', $request) }}" target="_blank" class="surface group flex items-center gap-3 px-5 py-4 transition hover:border-zinc-300 dark:hover:border-white/20">
+                    <span class="flex size-10 items-center justify-center rounded-lg bg-red-50 text-red-600 ring-1 ring-red-600/10 dark:bg-red-400/10 dark:text-red-300">
+                        <flux:icon.document-text class="size-5" />
+                    </span>
+                    <div class="min-w-0 flex-1 text-sm">
+                        <p class="font-semibold text-zinc-900 dark:text-white">{{ __('Fiche officielle archivée') }}</p>
+                        <p class="truncate font-mono text-[11px] text-zinc-500" title="SHA-256 {{ $archived->checksum }}">SHA-256 {{ \Illuminate\Support\Str::limit($archived->checksum, 16, '…') }}</p>
+                    </div>
+                    <flux:icon.arrow-down-tray variant="micro" class="size-4 text-zinc-400 group-hover:text-zinc-600" />
+                </a>
+            @endif
 
             <section class="surface">
                 <header class="border-b border-zinc-200 px-5 py-4 dark:border-white/10">
@@ -247,7 +218,10 @@
                                 <flux:icon :icon="$event->type->icon()" variant="micro" class="size-3.5" />
                             </span>
                             <div class="min-w-0 pt-0.5 text-sm">
-                                <p class="font-medium text-zinc-900 dark:text-white">{{ $event->type->getLabel() }}</p>
+                                <p class="font-medium text-zinc-900 dark:text-white">
+                                    {{ $event->type->getLabel() }}
+                                    @if (! empty($event->changes['direction']))<span class="font-normal text-zinc-500">· {{ $event->changes['direction'] }}</span>@endif
+                                </p>
                                 <p class="text-xs text-zinc-500">
                                     {{ $event->actor?->name ?? __('Système') }} ·
                                     <time datetime="{{ $event->created_at->toIso8601String() }}" title="{{ $event->created_at->translatedFormat('d F Y à H:i') }}">{{ $event->created_at->diffForHumans() }}</time>
@@ -290,9 +264,7 @@
 
             <div class="flex justify-end gap-2">
                 <flux:modal.close><flux:button variant="ghost">{{ __('Annuler') }}</flux:button></flux:modal.close>
-                <flux:button type="submit" :variant="$decision === ApprovalDecision::Rejected ? 'danger' : 'primary'">
-                    {{ __('Confirmer') }}
-                </flux:button>
+                <flux:button type="submit" :variant="$decision === ApprovalDecision::Rejected ? 'danger' : 'primary'">{{ __('Confirmer') }}</flux:button>
             </div>
         </form>
     </flux:modal>
