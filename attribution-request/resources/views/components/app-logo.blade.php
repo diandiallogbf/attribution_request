@@ -7,7 +7,7 @@
 <a {{ $attributes->class('group flex items-center gap-3 rounded-lg px-1 py-1 outline-none focus-visible:ring-2 focus-visible:ring-white/40') }}>
     <img
         src="{{ asset($inverse ? 'images/brand/agl-wordmark-white.png' : 'images/brand/agl-wordmark.png') }}"
-        alt="AGL — Africa Global Logistics"
+        alt="AGL -Africa Global Logistics"
         class="h-7 w-auto shrink-0 {{ $inverse ? '' : 'dark:hidden' }}"
     >
     @unless ($inverse)

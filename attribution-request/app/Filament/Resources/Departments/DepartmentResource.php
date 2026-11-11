@@ -47,7 +47,7 @@ class DepartmentResource extends Resource
     {
         return $schema->columns(2)->components([
             Select::make('direction_id')->label('Direction')->required()
-                ->options(fn () => Direction::query()->orderBy('code')->get()->mapWithKeys(fn (Direction $d) => [$d->id => $d->code.' — '.$d->name])->all()),
+                ->options(fn () => Direction::query()->orderBy('code')->get()->mapWithKeys(fn (Direction $d) => [$d->id => $d->code.' -'.$d->name])->all()),
             TextInput::make('name')->label('Service')->required()->maxLength(120),
             Select::make('head_id')->label('Chef de service')->searchable()->columnSpanFull()
                 ->options(fn () => User::query()->active()->orderBy('last_name')->get()->mapWithKeys(fn (User $u) => [$u->id => $u->name])->all())

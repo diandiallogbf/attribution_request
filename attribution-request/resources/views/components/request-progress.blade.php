@@ -35,4 +35,4 @@
         </li>
     @endforeach
 </ol>
-<p class="mt-2 text-xs text-zinc-500 sm:hidden">{{ __('Étape :n sur 6 — :label', ['n' => $current, 'label' => $stages[$current]]) }}</p>
+<p class="mt-2 text-xs text-zinc-500 sm:hidden">{{ __('Étape :n sur 6 -:label', ['n' => $current, 'label' => $stages[$current]]) }}</p>

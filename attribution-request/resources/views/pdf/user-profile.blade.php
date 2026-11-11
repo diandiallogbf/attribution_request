@@ -99,7 +99,7 @@
         <td>{!! PdfFormat::box($equipment->contains(EquipmentType::LocalPrinter)) !!} Local</td>
         <td>{!! PdfFormat::box($equipment->contains(EquipmentType::Scanner)) !!} Scanneur</td>
     </tr>
-    <tr><td class="label">Téléphone — Numéro (GSM) :</td><td class="value" colspan="2">{{ $profile?->gsm_number?->international() }}</td></tr>
+    <tr><td class="label">Téléphone -Numéro (GSM) :</td><td class="value" colspan="2">{{ $profile?->gsm_number?->international() }}</td></tr>
 </table>
 
 <div class="bar">Autorisation</div>
@@ -122,7 +122,7 @@
 </p>
 
 <table style="margin-top: 5px;">
-    <tr><td class="label" style="width: 12%;">Commentaires :</td><td class="value" colspan="3">{{ collect([$request->execution_notes, $profile?->execution_ticket ? 'Ticket '.$profile->execution_ticket : null])->filter()->join(' — ') }}</td></tr>
+    <tr><td class="label" style="width: 12%;">Commentaires :</td><td class="value" colspan="3">{{ collect([$request->execution_notes, $profile?->execution_ticket ? 'Ticket '.$profile->execution_ticket : null])->filter()->join(' -') }}</td></tr>
     <tr>
         <td class="label">Date d'exécution</td><td class="value" style="width: 20%;">{{ PdfFormat::date($request->executed_at) }}</td>
         <td class="label" style="width: 24%;">Exécuté par (Nom &amp; Prénom IT)</td><td class="value">{{ $request->executedBy?->name }}</td>

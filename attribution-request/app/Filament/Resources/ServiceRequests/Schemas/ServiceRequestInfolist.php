@@ -147,7 +147,7 @@ class ServiceRequestInfolist
                         TextEntry::make('orders')->label('Commandes')
                             ->visible(fn (ServiceRequest $record): bool => $record->orderItems->isNotEmpty())
                             ->state(fn (ServiceRequest $record): array => $record->orderItems
-                                ->map(fn ($item) => $item->order->type->getLabel().($item->order->reference ? ' n° '.$item->order->reference : '').' — '.$item->order->status->getLabel())
+                                ->map(fn ($item) => $item->order->type->getLabel().($item->order->reference ? ' n° '.$item->order->reference : '').' -'.$item->order->status->getLabel())
                                 ->all())
                             ->listWithLineBreaks(),
                     ]),

@@ -11,7 +11,7 @@ use App\ValueObjects\PhoneNumber;
 use Illuminate\Validation\Rule;
 use Livewire\Form;
 
-/** Étape 4 — Ligne SIM (sections « Information numéro (SIM) » et « Montant à recharger »). */
+/** Étape 4 -Ligne SIM (sections « Information numéro (SIM) » et « Montant à recharger »). */
 class SimForm extends Form
 {
     public ?string $action = null;

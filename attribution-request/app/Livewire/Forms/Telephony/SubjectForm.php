@@ -5,7 +5,7 @@ namespace App\Livewire\Forms\Telephony;
 use Closure;
 use Livewire\Form;
 
-/** Étape 2 — Objet : téléphone, ligne SIM, ou les deux (section « Attribution » de la fiche). */
+/** Étape 2 -Objet : téléphone, ligne SIM, ou les deux (section « Attribution » de la fiche). */
 class SubjectForm extends Form
 {
     public bool $wantsPhone = false;

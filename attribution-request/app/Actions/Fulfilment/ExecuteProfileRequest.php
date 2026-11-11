@@ -22,7 +22,7 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 /**
- * Fiche profil — exécution par l'IT : comptes et accès ouverts (ou fermés), preuve d'exécution
+ * Fiche profil -exécution par l'IT : comptes et accès ouverts (ou fermés), preuve d'exécution
  * (ticket / capture). Le compte portail d'un nouvel arrivant peut être créé dans la foulée.
  * La fiche part ensuite chez l'assistante pour transmission et archivage.
  */

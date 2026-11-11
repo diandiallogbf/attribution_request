@@ -10,7 +10,7 @@
         </div>
     </x-form-section>
 
-    <x-form-section :title="__('Téléphone — numéro GSM')" optional
+    <x-form-section :title="__('Téléphone -numéro GSM')" optional
         :description="__('Numéro professionnel du collaborateur, s\'il en a déjà un. Pour un nouveau téléphone, faites une demande de téléphonie.')">
         <div class="max-w-xs">
             <flux:input wire:model.blur="profile.gsmNumber" icon="phone" placeholder="622 12 34 56" inputmode="tel" />

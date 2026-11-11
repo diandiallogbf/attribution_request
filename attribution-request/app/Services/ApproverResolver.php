@@ -74,7 +74,7 @@ final class ApproverResolver
 
     /**
      * Collaborateurs pour lesquels l'utilisateur peut faire une demande : ses N-1 directs
-     * et les membres des services qu'il dirige — jamais sa propre hiérarchie.
+     * et les membres des services qu'il dirige -jamais sa propre hiérarchie.
      *
      * @return Collection<int, User>
      */

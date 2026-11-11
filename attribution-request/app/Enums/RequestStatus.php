@@ -42,7 +42,7 @@ enum RequestStatus: string implements HasColor, HasIcon, HasLabel
             self::Ordering => __('En commande'),
             self::ReadyForAssignment => __('Prête à attribuer'),
             self::PendingReceipt => __('En attente de réception'),
-            self::Executed => __('Exécutée — à transmettre'),
+            self::Executed => __('Exécutée -à transmettre'),
             self::Closed => __('Clôturée'),
             self::Rejected => __('Rejetée'),
             self::Cancelled => __('Annulée'),

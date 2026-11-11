@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 /**
- * Étape 03 — Approbation DSI : vérifie la grille (modèle, type, recharge), fixe le modèle retenu
+ * Étape 03 -Approbation DSI : vérifie la grille (modèle, type, recharge), fixe le modèle retenu
  * et le montant approuvé, puis valide. Tout écart à la grille exige une justification (dérogation tracée).
  */
 final readonly class ApproveByDsi

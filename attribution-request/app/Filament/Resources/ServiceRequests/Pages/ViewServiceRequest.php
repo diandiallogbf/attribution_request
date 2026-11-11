@@ -69,7 +69,7 @@ class ViewServiceRequest extends ViewRecord
 
     public function getTitle(): string
     {
-        return $this->record->displayReference().' — '.$this->record->subjectLabel();
+        return $this->record->displayReference().' -'.$this->record->subjectLabel();
     }
 
     public function getSubheading(): string
@@ -147,7 +147,7 @@ class ViewServiceRequest extends ViewRecord
                         ->options(fn (): array => DeviceModel::query()->active()
                             ->when($this->record->phoneDetail?->requested_phone_type, fn ($query, $type) => $query->orderByRaw('phone_type = ? desc', [$type->value]))
                             ->get()
-                            ->mapWithKeys(fn (DeviceModel $model) => [$model->id => $model->label.' — '.$model->phone_type->getLabel()])
+                            ->mapWithKeys(fn (DeviceModel $model) => [$model->id => $model->label.' -'.$model->phone_type->getLabel()])
                             ->all())
                         ->searchable()
                         ->helperText(fn (): string => 'Demandé : '.($this->record->phoneDetail?->requestedTypeLabel() ?? '—')),
@@ -188,7 +188,7 @@ class ViewServiceRequest extends ViewRecord
                 ->visible(fn (): bool => $isTelephony()
                     && in_array($this->record->status, [RequestStatus::Approved, RequestStatus::Ordering], true)
                     && ($needsDevice() || $needsNewLine()))
-                ->modalHeading('Étape 04 — Commande')
+                ->modalHeading('Étape 04 -Commande')
                 ->schema([
                     Select::make('type')
                         ->label('Type de commande')
@@ -231,7 +231,7 @@ class ViewServiceRequest extends ViewRecord
                 ->visible(fn (): bool => $isTelephony()
                     && ($this->record->status === RequestStatus::ReadyForAssignment
                         || ($this->record->status === RequestStatus::Approved && ! $needsDevice() && ! $needsNewLine())))
-                ->modalHeading('Étape 05 — Attribution')
+                ->modalHeading('Étape 05 -Attribution')
                 ->modalDescription('Configurez le matériel puis remettez-le : le bénéficiaire confirmera la réception dans le portail.')
                 ->modalWidth('2xl')
                 ->schema([
@@ -273,7 +273,7 @@ class ViewServiceRequest extends ViewRecord
                         ->required($needsNewLine)
                         ->searchable()
                         ->options(fn (): array => SimLine::query()->where('status', SimLineStatus::InStock)->get()
-                            ->mapWithKeys(fn (SimLine $line) => [$line->id => $line->msisdn->international().($line->iccid ? ' — ICCID '.$line->iccid : '')])
+                            ->mapWithKeys(fn (SimLine $line) => [$line->id => $line->msisdn->international().($line->iccid ? ' -ICCID '.$line->iccid : '')])
                             ->all()),
                     Textarea::make('notes')->label('Notes d\'exécution')->rows(2),
                 ])
@@ -363,7 +363,7 @@ class ViewServiceRequest extends ViewRecord
                 ->icon(Heroicon::OutlinedArchiveBox)
                 ->visible(fn (): bool => $isProfile() && $this->record->status === RequestStatus::Executed && auth()->user()->hasAnyRole(Role::archiving()))
                 ->requiresConfirmation()
-                ->modalHeading('Étape 06 — Clôture')
+                ->modalHeading('Étape 06 -Clôture')
                 ->modalDescription('La fiche officielle (PDF) sera générée avec toutes les validations horodatées puis archivée.')
                 ->schema([Textarea::make('comment')->label('Commentaire')->rows(2)])
                 ->action(fn (array $data) => $this->run(fn () => app(TransmitAndArchive::class)->handle($this->record, auth()->user(), $data['comment'] ?? null), 'Fiche archivée')),

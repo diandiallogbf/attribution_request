@@ -41,7 +41,7 @@ class ApprovalRequested extends Notification implements ShouldQueue
         $request = $approval->serviceRequest->loadMissing(['beneficiary', 'requester', 'phoneDetail', 'simDetail', 'profileDetail']);
 
         return (new MailMessage)
-            ->subject(__(':prefix :reference — :subject pour :name', [
+            ->subject(__(':prefix :reference -:subject pour :name', [
                 'prefix' => $this->reminder ? __('[Relance]') : __('[À valider]'),
                 'reference' => $request->displayReference(),
                 'subject' => $request->subjectLabel(),
@@ -57,7 +57,7 @@ class ApprovalRequested extends Notification implements ShouldQueue
                 ]))
             ->line(__('Étape attendue : :step.', ['step' => $approval->label()]))
             ->action(__('Examiner la demande'), route('requests.show', $request))
-            ->salutation(__('Portail des demandes IT — AGL Guinée'));
+            ->salutation(__('Portail des demandes IT -AGL Guinée'));
     }
 
     /** @return array<string, mixed> */
@@ -70,7 +70,7 @@ class ApprovalRequested extends Notification implements ShouldQueue
             'request_uuid' => $request->uuid,
             'reference' => $request->displayReference(),
             'title' => $this->reminder ? __('Relance : validation attendue') : __('Validation demandée'),
-            'body' => __(':reference — :step', ['reference' => $request->displayReference(), 'step' => $this->approval->label()]),
+            'body' => __(':reference -:step', ['reference' => $request->displayReference(), 'step' => $this->approval->label()]),
         ];
     }
 }

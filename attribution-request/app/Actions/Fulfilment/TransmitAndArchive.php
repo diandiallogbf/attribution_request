@@ -9,7 +9,7 @@ use App\Exceptions\Domain\InvalidTransitionException;
 use App\Models\ServiceRequest;
 use App\Models\User;
 
-/** Fiche profil — étapes 05-06 : l'assistante transmet la fiche exécutée et l'archive (GED). */
+/** Fiche profil -étapes 05-06 : l'assistante transmet la fiche exécutée et l'archive (GED). */
 final readonly class TransmitAndArchive
 {
     use EnsuresRole;

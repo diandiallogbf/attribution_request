@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\DB;
 use Throwable;
 
 /**
- * Étape 06 — Clôture : la demande est close et la fiche officielle (PDF, avec l'historique des
+ * Étape 06 -Clôture : la demande est close et la fiche officielle (PDF, avec l'historique des
  * validations horodatées) est archivée avec son empreinte SHA-256. Pas de contrôle de rôle ici :
  * les points d'entrée (ConfirmReceipt, TransmitAndArchive, FulfilTelephonyRequest) s'en chargent.
  */

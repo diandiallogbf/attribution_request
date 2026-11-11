@@ -62,7 +62,7 @@
     <div class="footer">Cette fiche ne doit contenir ni rature ni surcharge</div>
     <div class="generated">
         Document généré électroniquement par le Portail IT AGL le {{ $generatedAt->format('d/m/Y à H:i') }}.
-        Validations horodatées et tracées dans le journal d'audit de la demande {{ $request->displayReference() }}. — Sensitivity: Internal
+        Validations horodatées et tracées dans le journal d'audit de la demande {{ $request->displayReference() }}. -Sensitivity: Internal
     </div>
 </div>
 </body>

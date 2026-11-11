@@ -7,7 +7,7 @@ use App\Enums\PhoneType;
 use Illuminate\Validation\Rule;
 use Livewire\Form;
 
-/** Étape 3 — Téléphone (section « Information téléphone » de la fiche). */
+/** Étape 3 -Téléphone (section « Information téléphone » de la fiche). */
 class PhoneForm extends Form
 {
     public ?string $reason = null;

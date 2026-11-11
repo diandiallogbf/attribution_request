@@ -20,7 +20,7 @@ use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Étape 04 — Commande : bon de commande fournisseur (téléphone) ou demande de puce à l'opérateur (SIM).
+ * Étape 04 -Commande : bon de commande fournisseur (téléphone) ou demande de puce à l'opérateur (SIM).
  */
 final class PlaceOrder
 {
@@ -97,6 +97,6 @@ final class PlaceOrder
             throw FulfilmentException::nothingToOrder($request->displayReference());
         }
 
-        return ['description' => __('Puce SIM — création de ligne (:plan)', ['plan' => $request->simDetail->plan_type?->getLabel() ?? '—'])];
+        return ['description' => __('Puce SIM -création de ligne (:plan)', ['plan' => $request->simDetail->plan_type?->getLabel() ?? '—'])];
     }
 }

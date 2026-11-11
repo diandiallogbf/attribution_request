@@ -68,7 +68,7 @@ class DeviceResource extends Resource
             Select::make('device_model_id')->label('Modèle')->required()->searchable()
                 ->options(fn () => DeviceModel::query()->orderBy('brand')->get()->mapWithKeys(fn (DeviceModel $model) => [$model->id => $model->label])->all()),
             Select::make('status')->label('Statut')->options(DeviceStatus::class)->default(DeviceStatus::InStock->value)->required(),
-            TextInput::make('imei')->label('IMEI')->helperText('15 chiffres — *#06# sur le téléphone')
+            TextInput::make('imei')->label('IMEI')->helperText('15 chiffres -*#06# sur le téléphone')
                 ->rules(fn (?Device $record) => [new ValidValueObject(Imei::class), new UniqueValueObject(Imei::class, Device::class, 'imei', $record, 'Cet IMEI est déjà dans le parc.')]),
             TextInput::make('serial_number')->label('N° de série')->unique(ignoreRecord: true),
             DatePicker::make('acquired_at')->label('Date d\'acquisition')->native(false),

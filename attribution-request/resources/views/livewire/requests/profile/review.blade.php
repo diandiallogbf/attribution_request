@@ -19,7 +19,7 @@
             __('Site') => $this->sites->firstWhere('id', $profile->siteId)?->name,
             __('Catégorie') => EmployeeCategory::tryFrom((string) $profile->category)?->getLabel(),
             __('Type de profil') => ProfileType::tryFrom((string) $profile->profileType)?->getLabel()
-                .($profile->internshipEndsAt ? ' — '.__('fin le :date', ['date' => \Illuminate\Support\Facades\Date::parse($profile->internshipEndsAt)->translatedFormat('d F Y')]) : ''),
+                .($profile->internshipEndsAt ? ' -'.__('fin le :date', ['date' => \Illuminate\Support\Facades\Date::parse($profile->internshipEndsAt)->translatedFormat('d F Y')]) : ''),
             __('Prise de poste') => $profile->effectiveAt ? \Illuminate\Support\Facades\Date::parse($profile->effectiveAt)->translatedFormat('d F Y') : null,
         ]
         : [
@@ -37,7 +37,7 @@
             <div class="mb-4 flex items-center justify-between">
                 <h3 class="flex items-center gap-2 text-sm font-semibold text-zinc-900 dark:text-white">
                     <flux:icon :icon="$action?->icon() ?? 'user'" variant="micro" class="size-4 text-zinc-400" />
-                    {{ $action?->getLabel() }} — {{ __('Information utilisateur') }}
+                    {{ $action?->getLabel() }} -{{ __('Information utilisateur') }}
                 </h3>
                 <flux:button size="xs" variant="ghost" icon="pencil-square" wire:click="goTo('person')">{{ __('Modifier') }}</flux:button>
             </div>
@@ -95,7 +95,7 @@
                 ['user-circle', __('Validation manager'), $selfApproved ? __('Validée d\'office (vous êtes le responsable)') : ($circuit['manager']?->name ?? __('Responsable non défini')), $selfApproved],
             ];
             foreach ($circuit['directions'] as $direction) {
-                $stagesList[] = ['shield-check', __('Validation métier — :code', ['code' => $direction->code]), $direction->director?->name ?? __('Directeur non défini'), false];
+                $stagesList[] = ['shield-check', __('Validation métier -:code', ['code' => $direction->code]), $direction->director?->name ?? __('Directeur non défini'), false];
             }
             $stagesList[] = ['building-office-2', __('Validation DSI'), __('Création du profil par l\'IT'), false];
             $stagesList[] = ['archive-box', __('Transmission & GED'), __('Fiche archivée'), false];

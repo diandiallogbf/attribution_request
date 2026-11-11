@@ -76,7 +76,7 @@ class UserResource extends Resource
                 Select::make('category')->label('Catégorie')->options(EmployeeCategory::class),
                 Select::make('site_id')->label('Site')->options(fn () => Site::query()->pluck('name', 'id')->all()),
                 Select::make('department_id')->label('Service')->searchable()
-                    ->options(fn () => Department::query()->with('direction')->get()->mapWithKeys(fn (Department $d) => [$d->id => $d->direction->code.' — '.$d->name])->all()),
+                    ->options(fn () => Department::query()->with('direction')->get()->mapWithKeys(fn (Department $d) => [$d->id => $d->direction->code.' -'.$d->name])->all()),
                 Select::make('manager_id')->label('Responsable (N+1)')->searchable()
                     ->options(fn (?User $record) => User::query()->active()->when($record, fn ($q) => $q->whereKeyNot($record->id))->orderBy('last_name')->get()->mapWithKeys(fn (User $u) => [$u->id => $u->name])->all())
                     ->helperText('Valide les demandes de ce collaborateur.'),

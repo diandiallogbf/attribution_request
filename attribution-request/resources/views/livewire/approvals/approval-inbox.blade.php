@@ -30,7 +30,7 @@
                                         'bg-violet-50 text-violet-700 dark:bg-violet-400/10 dark:text-violet-300' => $request->type === \App\Enums\RequestType::UserProfile,
                                     ])>{{ $request->type->getLabel() }}</span>
                                     {{ $request->subjectLabel() }}
-                                    @if ($request->phoneDetail?->reason) — {{ $request->phoneDetail->reason->getLabel() }} @endif
+                                    @if ($request->phoneDetail?->reason) -{{ $request->phoneDetail->reason->getLabel() }} @endif
                                     @if ($request->simDetail?->requested_monthly_recharge_gnf) · {{ $request->simDetail->requested_monthly_recharge_gnf->format() }}/mois @endif
                                 </p>
                                 <p class="numeric mt-1 text-xs text-zinc-500">

@@ -5,7 +5,7 @@ namespace App\Livewire\Forms\Telephony;
 use Illuminate\Validation\Rule;
 use Livewire\Form;
 
-/** Étape 1 — Pour qui est la demande ? */
+/** Étape 1 -Pour qui est la demande ? */
 class BeneficiaryForm extends Form
 {
     public ?int $beneficiaryId = null;

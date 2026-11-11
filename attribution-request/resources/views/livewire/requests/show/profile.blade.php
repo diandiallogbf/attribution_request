@@ -20,7 +20,7 @@
             __('Fonction') => $snapshot['job_title'] ?? $person?->job_title,
             __('Service') => $snapshot['department'] ?? $person?->department?->name,
             __('Location') => $snapshot['site'] ?? $person?->site?->name,
-            __('Type de profil') => $profile?->profile_type?->getLabel().($profile?->internship_ends_at ? ' — '.__('fin :date', ['date' => $profile->internship_ends_at->translatedFormat('d/m/Y')]) : ''),
+            __('Type de profil') => $profile?->profile_type?->getLabel().($profile?->internship_ends_at ? ' -'.__('fin :date', ['date' => $profile->internship_ends_at->translatedFormat('d/m/Y')]) : ''),
             $action === \App\Enums\ProfileAction::Deletion ? __('Date de départ') : __('Date d\'effet') => $profile?->effective_at?->translatedFormat('d F Y'),
             __('Responsable (N+1)') => $profile?->manager?->name ?? $person?->manager?->name,
             __('Profil de référence') => $profile?->reference_profile,

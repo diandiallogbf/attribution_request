@@ -24,7 +24,7 @@
                 <flux:select wire:model="profile.departmentId" :label="__('Service')" :placeholder="__('Choisir un service…')">
                     @foreach ($this->directions as $direction)
                         @foreach ($direction->departments as $department)
-                            <flux:select.option :value="$department->id">{{ $direction->code }} — {{ $department->name }}</flux:select.option>
+                            <flux:select.option :value="$department->id">{{ $direction->code }} -{{ $department->name }}</flux:select.option>
                         @endforeach
                     @endforeach
                 </flux:select>
@@ -40,7 +40,7 @@
                 </flux:select>
                 <flux:select wire:model="profile.managerId" :label="__('Responsable (N+1)')" :description="__('Il validera la demande (étape 2).')">
                     @foreach ($this->managers as $user)
-                        <flux:select.option :value="$user->id">{{ $user->name }}{{ $user->id === $me->id ? ' — '.__('moi') : '' }}</flux:select.option>
+                        <flux:select.option :value="$user->id">{{ $user->name }}{{ $user->id === $me->id ? ' -'.__('moi') : '' }}</flux:select.option>
                     @endforeach
                 </flux:select>
             </div>
@@ -69,9 +69,9 @@
                 <p class="mb-3 text-xs text-zinc-500">{{ __('Le collaborateur ne peut plus être changé sur ce brouillon.') }}</p>
             @endif
             <flux:select wire:model.live="profile.beneficiaryId" :disabled="$locked" :placeholder="__('Choisir un collaborateur…')">
-                <flux:select.option :value="$me->id">{{ $me->name }} — {{ __('moi') }}</flux:select.option>
+                <flux:select.option :value="$me->id">{{ $me->name }} -{{ __('moi') }}</flux:select.option>
                 @foreach ($this->teamMembers as $member)
-                    <flux:select.option :value="$member->id">{{ $member->name }} — {{ $member->job_title }}</flux:select.option>
+                    <flux:select.option :value="$member->id">{{ $member->name }} -{{ $member->job_title }}</flux:select.option>
                 @endforeach
             </flux:select>
             <x-field-error name="profile.beneficiaryId" />

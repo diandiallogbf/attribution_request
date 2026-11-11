@@ -24,7 +24,7 @@ use App\Notifications\RequestMilestone;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Étape 05 — Attribution : l'IT configure et remet le matériel, enregistre le retour de l'ancien appareil
+ * Étape 05 -Attribution : l'IT configure et remet le matériel, enregistre le retour de l'ancien appareil
  * et applique l'action demandée sur la ligne. S'il y a une remise, le bénéficiaire doit confirmer la réception ;
  * sinon (restitution, résiliation, modification…) la demande est clôturée directement.
  */

@@ -75,7 +75,7 @@ class ReferentialSeeder extends Seeder
                 'allowed_phone_types' => $types,
                 'max_monthly_recharge_gnf' => $maxRecharge,
                 'renewal_months' => $renewalMonths,
-                'notes' => 'Valeurs provisoires — à valider par la DSI.',
+                'notes' => 'Valeurs provisoires -à valider par la DSI.',
             ]);
         }
 

@@ -30,7 +30,7 @@
 
     <x-page-header :back="route('requests.index')"
         :eyebrow="$request->type->formTitle().' · '.$request->displayReference()"
-        :title="$request->subjectLabel().($request->beneficiary_id !== $user->id ? ' — '.$request->beneficiaryName() : '')">
+        :title="$request->subjectLabel().($request->beneficiary_id !== $user->id ? ' -'.$request->beneficiaryName() : '')">
         <x-slot:actions>
             <x-status-badge :status="$status" size="md" />
             @if ($status !== RequestStatus::Draft)

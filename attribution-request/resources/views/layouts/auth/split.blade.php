@@ -14,7 +14,7 @@
                 <div class="absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/30 to-transparent"></div>
 
                 <div class="relative z-10 flex flex-1 flex-col p-12 xl:p-16">
-                    <img src="{{ asset('images/brand/agl-logo-white.png') }}" alt="AGL — Africa Global Logistics" class="h-16 w-auto self-start">
+                    <img src="{{ asset('images/brand/agl-logo-white.png') }}" alt="AGL -Africa Global Logistics" class="h-16 w-auto self-start">
 
                     <div class="mt-auto max-w-md">
                         <p class="eyebrow !text-brand-200">{{ __('Direction des Systèmes d\'Information') }}</p>
@@ -44,7 +44,7 @@
                         </ul>
                     </div>
 
-                    <p class="mt-16 text-xs text-brand-200/60">© {{ now()->year }} Africa Global Logistics — Guinée · {{ __('Usage interne') }}</p>
+                    <p class="mt-16 text-xs text-brand-200/60">© {{ now()->year }} Africa Global Logistics -Guinée · {{ __('Usage interne') }}</p>
                 </div>
             </aside>
 

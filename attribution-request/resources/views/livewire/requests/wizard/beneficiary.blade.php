@@ -21,7 +21,7 @@
                 <div x-show="team" x-cloak x-transition.opacity>
                     <flux:select wire:model.live="beneficiary.beneficiaryId" :label="__('Collaborateur')" :placeholder="__('Choisir un collaborateur…')">
                         @foreach ($this->teamMembers as $member)
-                            <flux:select.option :value="$member->id">{{ $member->name }} — {{ $member->job_title }}</flux:select.option>
+                            <flux:select.option :value="$member->id">{{ $member->name }} -{{ $member->job_title }}</flux:select.option>
                         @endforeach
                     </flux:select>
                 </div>

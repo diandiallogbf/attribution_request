@@ -51,7 +51,7 @@ class ApplicationResource extends Resource
             TextInput::make('name')->label('Nom')->required()->maxLength(80),
             TextInput::make('description')->label('Description')->maxLength(160)->columnSpanFull(),
             Select::make('owner_direction_id')->label('Direction propriétaire')
-                ->options(fn () => Direction::query()->orderBy('code')->get()->mapWithKeys(fn (Direction $d) => [$d->id => $d->code.' — '.$d->name])->all())
+                ->options(fn () => Direction::query()->orderBy('code')->get()->mapWithKeys(fn (Direction $d) => [$d->id => $d->code.' -'.$d->name])->all())
                 ->helperText('Son directeur valide les demandes d\'accès (validation métier).'),
             Toggle::make('requires_business_approval')->label('Validation métier requise')->default(true),
             TextInput::make('sort_order')->label('Ordre sur la fiche')->numeric()->default(0),

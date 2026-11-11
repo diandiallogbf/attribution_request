@@ -110,7 +110,7 @@ class OrderResource extends Resource
                     ->icon(Heroicon::OutlinedInboxArrowDown)
                     ->button()
                     ->visible(fn (Order $record): bool => in_array($record->status, [OrderStatus::Sent, OrderStatus::PartiallyReceived], true))
-                    ->modalHeading(fn (Order $record): string => 'Réception — '.$record->type->getLabel())
+                    ->modalHeading(fn (Order $record): string => 'Réception -'.$record->type->getLabel())
                     ->modalDescription('Le matériel reçu entre en stock ; les demandes concernées passent « Prête à attribuer ».')
                     ->fillForm(fn (Order $record): array => [
                         'devices' => $record->type === OrderType::DevicePurchase ? array_fill(0, (int) $record->items->sum('quantity'), ['imei' => null, 'serial_number' => null]) : [],

@@ -70,11 +70,11 @@ class RequestApproval extends Model
         return $this->belongsTo(Direction::class);
     }
 
-    /** « Validation métier — DT » */
+    /** « Validation métier -DT » */
     public function label(): string
     {
         return $this->direction
-            ? $this->step->getLabel().' — '.$this->direction->code
+            ? $this->step->getLabel().' -'.$this->direction->code
             : $this->step->getLabel();
     }
 

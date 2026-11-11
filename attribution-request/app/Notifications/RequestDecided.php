@@ -33,7 +33,7 @@ class RequestDecided extends Notification implements ShouldQueue
     public function toMail(object $notifiable): MailMessage
     {
         $mail = (new MailMessage)
-            ->subject(__(':reference — :decision', ['reference' => $this->request->displayReference(), 'decision' => $this->decision->getLabel()]))
+            ->subject(__(':reference -:decision', ['reference' => $this->request->displayReference(), 'decision' => $this->decision->getLabel()]))
             ->greeting(__('Bonjour :name,', ['name' => $notifiable->first_name]))
             ->line(__('Votre demande :reference a été :decision par :by.', [
                 'reference' => $this->request->displayReference(),
@@ -51,7 +51,7 @@ class RequestDecided extends Notification implements ShouldQueue
 
         return $mail
             ->action(__('Voir la demande'), route('requests.show', $this->request))
-            ->salutation(__('Portail des demandes IT — AGL Guinée'));
+            ->salutation(__('Portail des demandes IT -AGL Guinée'));
     }
 
     /** @return array<string, mixed> */

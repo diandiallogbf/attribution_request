@@ -14,7 +14,7 @@ use App\Models\User;
 use App\Services\ApproverResolver;
 use Illuminate\Support\Facades\DB;
 
-/** Étape 01 — Initiation d'une fiche profil utilisateur. */
+/** Étape 01 -Initiation d'une fiche profil utilisateur. */
 final readonly class StartProfileDraft
 {
     public function __construct(private ApproverResolver $approvers) {}

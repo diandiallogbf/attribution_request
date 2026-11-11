@@ -11,7 +11,7 @@ use App\Models\User;
 use App\Services\ApproverResolver;
 use Illuminate\Support\Facades\DB;
 
-/** Étape 01 — Initiation : ouvre un brouillon dès que le bénéficiaire est choisi. */
+/** Étape 01 -Initiation : ouvre un brouillon dès que le bénéficiaire est choisi. */
 final readonly class StartTelephonyDraft
 {
     public function __construct(private ApproverResolver $approvers) {}

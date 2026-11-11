@@ -32,11 +32,11 @@ class RequestMilestone extends Notification implements ShouldQueue
     public function toMail(object $notifiable): MailMessage
     {
         return (new MailMessage)
-            ->subject(__(':reference — :title', ['reference' => $this->request->displayReference(), 'title' => $this->title]))
+            ->subject(__(':reference -:title', ['reference' => $this->request->displayReference(), 'title' => $this->title]))
             ->greeting(__('Bonjour :name,', ['name' => $notifiable->first_name]))
             ->line($this->body)
             ->action($this->actionLabel, $this->url ?? route('requests.show', $this->request))
-            ->salutation(__('Portail des demandes IT — AGL Guinée'));
+            ->salutation(__('Portail des demandes IT -AGL Guinée'));
     }
 
     /** @return array<string, mixed> */

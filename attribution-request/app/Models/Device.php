@@ -68,10 +68,10 @@ class Device extends Model
         return $this->morphOne(Assignment::class, 'assignable')->whereNull('returned_at')->latestOfMany('assigned_at');
     }
 
-    /** « Samsung Galaxy A16 · 128 Go — IMEI 35-…-1 » */
+    /** « Samsung Galaxy A16 · 128 Go -IMEI 35-…-1 » */
     protected function label(): Attribute
     {
         return Attribute::get(fn (): string => $this->model->label
-            .($this->imei ? ' — IMEI '.$this->imei->formatted() : ($this->serial_number ? ' — S/N '.$this->serial_number : '')));
+            .($this->imei ? ' -IMEI '.$this->imei->formatted() : ($this->serial_number ? ' -S/N '.$this->serial_number : '')));
     }
 }

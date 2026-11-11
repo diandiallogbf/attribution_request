@@ -78,7 +78,7 @@ class User extends Authenticatable implements FilamentUser, HasName
 
     // ── Identité ─────────────────────────────────────────────────────────────
 
-    /** Nom complet « Prénom NOM » — conserve la compatibilité avec le code qui lit $user->name. */
+    /** Nom complet « Prénom NOM » -conserve la compatibilité avec le code qui lit $user->name. */
     protected function name(): Attribute
     {
         return Attribute::get(fn (): string => trim($this->first_name.' '.Str::upper($this->last_name)));

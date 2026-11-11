@@ -24,7 +24,7 @@ enum Role: string implements HasLabel
     {
         return match ($this) {
             self::Admin => __('Administrateur'),
-            self::Dsi => __('DSI — approbation'),
+            self::Dsi => __('DSI -approbation'),
             self::ItManager => __('Responsable IT'),
             self::ItAgent => __('Technicien IT'),
             self::Assistant => __('Assistante (chrono / GED)'),
