@@ -101,7 +101,6 @@
             <form wire:submit="confirmReceipt" class="flex flex-col gap-4 border-t border-zinc-100 px-5 py-4 sm:flex-row sm:items-center dark:border-white/5">
                 <div class="flex-1">
                     <flux:checkbox wire:model="receiptPolicyAccepted" :label="__('Je m\'engage sans réserve à respecter la procédure de gestion de la téléphonie.')" />
-                    <x-field-error name="receiptPolicyAccepted" />
                 </div>
                 <flux:button type="submit" variant="primary" icon="hand-thumb-up">{{ __('Je confirme la réception') }}</flux:button>
             </form>

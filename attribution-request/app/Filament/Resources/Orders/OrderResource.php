@@ -87,18 +87,18 @@ class OrderResource extends Resource
                 TextColumn::make('status')->label('Statut')->badge(),
                 TextColumn::make('content')->label('Contenu')
                     ->state(fn (Order $record): array => $record->items->map(fn (OrderItem $item) => $item->quantity.' × '.($item->deviceModel?->label ?? $item->description))->all())
-                    ->listWithLineBreaks(),
+                    ->description(fn (Order $record): ?string => $record->supplier ?? $record->operator?->name)
+                    ->listWithLineBreaks()
+                    ->wrap(),
                 TextColumn::make('requests')->label('Demandes')
                     ->state(fn (Order $record): array => $record->items->pluck('serviceRequest')->filter()->map->displayReference()->unique()->values()->all())
                     ->badge()
                     ->url(fn (Order $record): ?string => ($request = $record->items->first()?->serviceRequest) ? ServiceRequestResource::getUrl('view', ['record' => $request]) : null),
-                TextColumn::make('supplier')->label('Fournisseur / opérateur')
-                    ->state(fn (Order $record): ?string => $record->supplier ?? $record->operator?->name)
-                    ->placeholder('—'),
                 TextColumn::make('ordered_at')->label('Commandée')->date('d/m/Y')->sortable(),
                 TextColumn::make('expected_at')->label('Livraison prévue')->date('d/m/Y')->placeholder('—')
                     ->color(fn (Order $record): ?string => $record->expected_at?->isPast() && $record->status === OrderStatus::Sent ? 'danger' : null),
-                TextColumn::make('total_gnf')->label('Montant')->formatStateUsing(fn ($state) => $state?->format())->placeholder('—')->alignEnd(),
+                TextColumn::make('total_gnf')->label('Montant')->formatStateUsing(fn ($state) => $state?->format())->placeholder('—')->alignEnd()
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 SelectFilter::make('status')->label('Statut')->options(OrderStatus::class),
