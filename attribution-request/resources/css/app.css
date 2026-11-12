@@ -1,9 +1,114 @@
 @import 'tailwindcss';
+@import '../../vendor/livewire/flux/dist/flux.css';
 
+@source '../views';
+@source '../../app/Enums';
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
-@source '../../storage/framework/views/*.php';
+@source '../../vendor/livewire/flux-pro/stubs/**/*.blade.php';
+@source '../../vendor/livewire/flux/stubs/**/*.blade.php';
 
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+ * ── Design tokens AGL ─────────────────────────────────────────────────────────
+ * Couleur de marque relevée sur le logo officiel : #1C355E (brand-800).
+ * Neutres : ardoise (slate), plus froids que le zinc par défaut → cohérents avec le bleu marine.
+ */
 @theme {
-    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
-        'Segoe UI Symbol', 'Noto Color Emoji';
+    --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji';
+
+    --color-brand-50: #f1f5fb;
+    --color-brand-100: #e2e9f4;
+    --color-brand-200: #c5d3e8;
+    --color-brand-300: #9cb2d5;
+    --color-brand-400: #6b89bb;
+    --color-brand-500: #4a6aa2;
+    --color-brand-600: #375285;
+    --color-brand-700: #2b426c;
+    --color-brand-800: #1c355e;
+    --color-brand-900: #152848;
+    --color-brand-950: #0d1a31;
+
+    /* Flux s'appuie sur la gamme « zinc » : on la remplace par l'ardoise. */
+    --color-zinc-50: #f8fafc;
+    --color-zinc-100: #f1f5f9;
+    --color-zinc-200: #e2e8f0;
+    --color-zinc-300: #cbd5e1;
+    --color-zinc-400: #94a3b8;
+    --color-zinc-500: #64748b;
+    --color-zinc-600: #475569;
+    --color-zinc-700: #334155;
+    --color-zinc-800: #1e293b;
+    --color-zinc-900: #0f172a;
+    --color-zinc-950: #020617;
+
+    --color-accent: var(--color-brand-800);
+    --color-accent-content: var(--color-brand-800);
+    --color-accent-foreground: var(--color-white);
+
+    --shadow-card: 0 1px 2px 0 rgb(15 23 42 / 0.04), 0 1px 3px 0 rgb(15 23 42 / 0.06);
+    --shadow-raised: 0 4px 6px -2px rgb(15 23 42 / 0.05), 0 12px 24px -6px rgb(15 23 42 / 0.10);
+}
+
+@layer theme {
+    /* Sombre : bouton plein en bleu moyen + texte blanc (contraste AA), liens en bleu clair. */
+    .dark {
+        --color-accent: var(--color-brand-500);
+        --color-accent-content: var(--color-brand-300);
+        --color-accent-foreground: var(--color-white);
+    }
+
+    /* Barre latérale bleu marine : on y force le jeu de couleurs « sombre » de Flux. */
+    .sidebar-brand {
+        --color-accent: var(--color-white);
+        --color-accent-content: var(--color-white);
+        --color-accent-foreground: var(--color-brand-900);
+    }
+}
+
+@layer base {
+    *,
+    ::after,
+    ::before,
+    ::backdrop,
+    ::file-selector-button {
+        border-color: var(--color-zinc-200, currentColor);
+    }
+
+    html {
+        font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+        -webkit-font-smoothing: antialiased;
+    }
+
+    [x-cloak] {
+        display: none !important;
+    }
+}
+
+[data-flux-field]:not(ui-radio, ui-checkbox) {
+    @apply grid gap-2;
+}
+
+[data-flux-label] {
+    @apply !mb-0 !leading-tight;
+}
+
+input:focus[data-flux-control],
+textarea:focus[data-flux-control],
+select:focus[data-flux-control] {
+    @apply outline-hidden ring-2 ring-accent/40 ring-offset-0 border-accent;
+}
+
+/* ── Composants maison ──────────────────────────────────────────────────────── */
+
+@utility surface {
+    @apply rounded-xl border border-zinc-200 bg-white shadow-(--shadow-card) dark:border-white/10 dark:bg-zinc-900;
+}
+
+@utility eyebrow {
+    @apply text-[11px] font-semibold tracking-[0.08em] text-zinc-500 uppercase dark:text-zinc-400;
+}
+
+@utility numeric {
+    font-variant-numeric: tabular-nums;
 }
