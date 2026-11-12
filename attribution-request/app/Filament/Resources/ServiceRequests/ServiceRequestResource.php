@@ -26,7 +26,7 @@ class ServiceRequestResource extends Resource
 
     protected static string|UnitEnum|null $navigationGroup = 'Demandes';
 
-    protected static ?string $navigationLabel = 'Demandes de téléphonie';
+    protected static ?string $navigationLabel = 'Téléphonie & profils';
 
     protected static ?string $modelLabel = 'demande';
 
@@ -49,7 +49,7 @@ class ServiceRequestResource extends Resource
     {
         return parent::getEloquentQuery()
             ->where('status', '!=', RequestStatus::Draft)
-            ->with(['beneficiary.department', 'site', 'phoneDetail', 'simDetail', 'profileDetail']);
+            ->with(['beneficiary.department', 'site', 'handler', 'phoneDetail', 'simDetail', 'profileDetail']);
     }
 
     public static function canCreate(): bool

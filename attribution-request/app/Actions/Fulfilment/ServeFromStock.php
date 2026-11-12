@@ -6,7 +6,6 @@ use App\Actions\Fulfilment\Concerns\EnsuresRole;
 use App\Enums\DeviceStatus;
 use App\Enums\RequestEventType;
 use App\Enums\RequestStatus;
-use App\Enums\Role;
 use App\Enums\SimAction;
 use App\Enums\SimLineStatus;
 use App\Exceptions\Domain\FulfilmentException;
@@ -22,7 +21,7 @@ final class ServeFromStock
 
     public function handle(ServiceRequest $request, User $actor): ServiceRequest
     {
-        $this->ensureRole($actor, Role::fulfilment(), __('servir une demande depuis le stock'));
+        $this->ensureCanFulfil($request, $actor, __('servir une demande depuis le stock'));
         $request->loadMissing(['phoneDetail.approvedDeviceModel', 'simDetail']);
 
         $model = $request->phoneDetail?->approvedDeviceModel;

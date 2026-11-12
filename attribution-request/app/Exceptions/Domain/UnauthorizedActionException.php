@@ -38,6 +38,14 @@ final class UnauthorizedActionException extends DomainException
         return new self(__('Votre rôle ne permet pas de :action.', ['action' => $action]), ['action' => $action]);
     }
 
+    public static function delegatedToSomeoneElse(string $reference, string $handler): self
+    {
+        return new self(
+            __('La DSI a confié la demande :reference à :handler : vous ne pouvez pas la traiter.', ['reference' => $reference, 'handler' => $handler]),
+            ['reference' => $reference, 'handler' => $handler],
+        );
+    }
+
     public function title(): string
     {
         return __('Accès refusé');

@@ -48,7 +48,7 @@ final class RequestFormPdf
     public function archive(ServiceRequest $request, ?User $actor): Attachment
     {
         $bytes = $this->render($request);
-        $path = sprintf('ged/%d/%s/%s.pdf', ($request->submitted_at ?? now())->year, $request->type->referencePrefix(), $request->displayReference());
+        $path = sprintf('ged/%d/%s/%s.pdf', ($request->submitted_at ?? now())->year, $request->type->archiveFolder(), $request->displayReference());
 
         Storage::disk('local')->put($path, $bytes);
 

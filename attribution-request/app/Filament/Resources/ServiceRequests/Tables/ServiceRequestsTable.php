@@ -43,6 +43,11 @@ class ServiceRequestsTable
                     ->label('Statut')
                     ->badge()
                     ->sortable(),
+                TextColumn::make('handler.last_name')
+                    ->label('Traitée par')
+                    ->formatStateUsing(fn (ServiceRequest $record): ?string => $record->handler?->name)
+                    ->placeholder('—')
+                    ->toggleable(),
                 TextColumn::make('submitted_at')
                     ->label('Soumise')
                     ->since()
@@ -64,6 +69,10 @@ class ServiceRequestsTable
                 SelectFilter::make('site')
                     ->label('Site')
                     ->relationship('site', 'name'),
+                SelectFilter::make('handler')
+                    ->label('Traitée par')
+                    ->relationship('handler', 'last_name')
+                    ->getOptionLabelFromRecordUsing(fn ($record): string => $record->name),
             ])
             ->recordActions([
                 ViewAction::make(),

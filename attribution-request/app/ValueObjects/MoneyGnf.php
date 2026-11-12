@@ -56,6 +56,26 @@ final readonly class MoneyGnf implements ValueObject
         return new self($this->amount + $other->amount);
     }
 
+    /** Projection (ex. recharge mensuelle × 12). */
+    public function times(int $factor): self
+    {
+        return self::from($this->amount * $factor);
+    }
+
+    /** @param  iterable<self|null>  $amounts */
+    public static function sum(iterable $amounts): self
+    {
+        $total = self::zero();
+
+        foreach ($amounts as $amount) {
+            if ($amount !== null) {
+                $total = $total->add($amount);
+            }
+        }
+
+        return $total;
+    }
+
     /** « 300 000 GNF » avec espaces insécables (typographie française). */
     public function format(): string
     {

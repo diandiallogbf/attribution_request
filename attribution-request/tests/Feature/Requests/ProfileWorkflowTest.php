@@ -73,7 +73,7 @@ it('demande la validation de chaque direction propriétaire, puis de la DSI', fu
 
     // Le manager est le demandeur : validation d'office, puis 2 directions (DT, DAF) en parallèle.
     expect($request->status)->toBe(RequestStatus::PendingBusiness)
-        ->and($request->reference->toStorage())->toStartWith('PRF-')
+        ->and($request->reference->toStorage())->toMatch('/^'.now()->format('ym').'\d{3}$/')
         ->and($request->beneficiary_id)->toBeNull()
         ->and($request->beneficiaryName())->toBe('Saran CAMARA');
 

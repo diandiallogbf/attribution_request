@@ -37,6 +37,7 @@ final class ExecuteProfileRequest
         $request = DB::transaction(function () use ($request, $actor, $data): ServiceRequest {
             $request = ServiceRequest::query()->whereKey($request->getKey())->lockForUpdate()->firstOrFail();
             $request->load(['beneficiary', 'profileDetail.applications']);
+            $this->ensureCanFulfil($request, $actor, __('exécuter une fiche profil'));
             $detail = $request->profileDetail;
 
             if ($request->type !== RequestType::UserProfile || $detail === null || $request->status !== RequestStatus::Approved) {
@@ -56,7 +57,7 @@ final class ExecuteProfileRequest
 
             if ($detail->action === ProfileAction::Creation && $data->createPortalAccount) {
                 $user = $this->createPortalAccount($request, $data->accountEmail);
-                $request->beneficiary_id = $user->id;
+                $request->beneficiary()->associate($user);
                 $detail->created_user_id = $user->id;
             }
 

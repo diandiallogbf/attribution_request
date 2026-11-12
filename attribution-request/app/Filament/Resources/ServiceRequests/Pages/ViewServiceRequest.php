@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\ServiceRequests\Pages;
 
+use App\Actions\Fulfilment\DelegateFulfilment;
 use App\Actions\Fulfilment\ExecuteProfileRequest;
 use App\Actions\Fulfilment\FulfilTelephonyRequest;
 use App\Actions\Fulfilment\PlaceOrder;
@@ -28,6 +29,7 @@ use App\Models\DeviceModel;
 use App\Models\RechargeAmount;
 use App\Models\ServiceRequest;
 use App\Models\SimLine;
+use App\Models\User;
 use App\ValueObjects\MoneyGnf;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
@@ -60,7 +62,7 @@ class ViewServiceRequest extends ViewRecord
         $record = parent::resolveRecord($key);
 
         return $record->loadMissing([
-            'beneficiary', 'requester', 'executedBy', 'approvals.decidedBy', 'approvals.assignedTo', 'approvals.direction',
+            'beneficiary', 'requester', 'executedBy', 'handler', 'delegatedBy', 'approvals.decidedBy', 'approvals.assignedTo', 'approvals.direction',
             'phoneDetail.previousDevice.model', 'phoneDetail.approvedDeviceModel', 'simDetail.existingSimLine',
             'profileDetail.applications', 'profileDetail.department', 'profileDetail.site', 'profileDetail.manager',
             'orderItems.order', 'archivedForms',
@@ -81,6 +83,7 @@ class ViewServiceRequest extends ViewRecord
     {
         return [
             ...$this->approvalActions(),
+            $this->delegateAction(),
             ...$this->telephonyFulfilmentActions(),
             ...$this->profileFulfilmentActions(),
             ActionGroup::make([
@@ -171,12 +174,57 @@ class ViewServiceRequest extends ViewRecord
         ];
     }
 
+    // ── Délégation DSI de la phase commande / exécution ──────────────────────
+
+    private function delegateAction(): Action
+    {
+        return Action::make('delegate')
+            ->label(fn (): string => $this->record->handler_id ? 'Réattribuer' : 'Déléguer')
+            ->icon(Heroicon::OutlinedUserPlus)
+            ->color('gray')
+            ->visible(fn (): bool => $this->record->status->isDelegable() && auth()->user()->hasAnyRole(Role::delegators()))
+            ->modalHeading(fn (): string => $this->record->handler_id ? 'Réattribuer la demande' : 'Déléguer la commande / l\'exécution')
+            ->modalDescription(fn (): string => $this->record->handler_id
+                ? 'Actuellement confiée à '.$this->record->handler?->name.'. Le nouveau responsable sera notifié.'
+                : 'Confiez la suite (commande, réception, attribution ou exécution) à un membre de votre équipe. Il sera notifié et sera seul, avec la DSI, à pouvoir agir.')
+            ->modalSubmitActionLabel('Confier')
+            ->schema([
+                Select::make('handler_id')
+                    ->label('Membre de l\'équipe')
+                    ->required()
+                    ->searchable()
+                    ->options(fn (): array => User::query()
+                        ->active()
+                        ->role(array_map(fn (Role $role) => $role->value, Role::delegates()))
+                        ->with('roles')
+                        ->orderBy('last_name')
+                        ->get()
+                        ->reject(fn (User $user) => $user->id === $this->record->handler_id)
+                        ->mapWithKeys(fn (User $user) => [$user->id => $user->name.' — '.(Role::tryFrom((string) $user->roles->first()?->name)?->getLabel() ?? '')])
+                        ->all()),
+                Textarea::make('instructions')
+                    ->label('Consignes')
+                    ->placeholder('Ex. : commander chez Orange Business, livraison avant vendredi.')
+                    ->rows(3),
+            ])
+            ->action(fn (array $data) => $this->run(
+                fn () => app(DelegateFulfilment::class)->handle(
+                    $this->record,
+                    auth()->user(),
+                    User::query()->findOrFail($data['handler_id']),
+                    $data['instructions'] ?? null,
+                ),
+                'Demande confiée',
+                'Le membre de l\'équipe a été notifié.',
+            ));
+    }
+
     // ── Étapes 04-05 : commande, stock, attribution (téléphonie) ──────────────
 
     /** @return list<Action> */
     private function telephonyFulfilmentActions(): array
     {
-        $isTelephony = fn (): bool => $this->record->type === RequestType::Telephony && auth()->user()->hasAnyRole(Role::fulfilment());
+        $isTelephony = fn (): bool => $this->record->type === RequestType::Telephony && $this->record->canBeFulfilledBy(auth()->user());
         $needsDevice = fn (): bool => (bool) $this->record->phoneDetail?->reason?->requiresNewDevice();
         $needsNewLine = fn (): bool => $this->record->simDetail?->action === SimAction::Creation;
 
@@ -304,7 +352,7 @@ class ViewServiceRequest extends ViewRecord
             Action::make('execute')
                 ->label('Exécuter')
                 ->icon(Heroicon::OutlinedWrenchScrewdriver)
-                ->visible(fn (): bool => $isProfile() && $this->record->status === RequestStatus::Approved && auth()->user()->hasAnyRole(Role::fulfilment()))
+                ->visible(fn (): bool => $isProfile() && $this->record->status === RequestStatus::Approved && $this->record->canBeFulfilledBy(auth()->user()))
                 ->modalHeading('Création / mise à jour du profil')
                 ->modalDescription('Cochez les accès effectivement traités et joignez la preuve (capture ou n° de ticket).')
                 ->modalWidth('2xl')
@@ -401,6 +449,9 @@ class ViewServiceRequest extends ViewRecord
         }
 
         Notification::make()->success()->title($successTitle)->body($successBody)->send();
-        $this->redirect(ServiceRequestResource::getUrl('view', ['record' => $this->record]), navigate: true);
+
+        // Recharge la fiche (statut, relations, actions visibles) sans navigation : une redirection SPA
+        // vers la même page laissait des composants Alpine orphelins à l'ouverture de la modale suivante.
+        $this->record = $this->resolveRecord($this->record->getRouteKey());
     }
 }

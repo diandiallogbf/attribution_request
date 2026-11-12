@@ -7,6 +7,7 @@ use App\Enums\AttachmentKind;
 use App\Enums\RequestEventType;
 use App\Enums\RequestStatus;
 use App\Enums\RequestType;
+use App\Enums\Role;
 use App\Exceptions\Domain\InvalidTransitionException;
 use App\ValueObjects\RequestReference;
 use Database\Factories\ServiceRequestFactory;
@@ -42,19 +43,26 @@ use Illuminate\Support\Str;
  * @property Carbon|null $executed_at
  * @property int|null $executed_by_id
  * @property string|null $execution_notes
+ * @property int|null $handler_id
+ * @property int|null $delegated_by_id
+ * @property Carbon|null $delegated_at
+ * @property string|null $delegation_note
  * @property Carbon|null $closed_at
  * @property Carbon $created_at
  * @property Carbon $updated_at
  * @property-read User $requester
  * @property-read User|null $beneficiary
  * @property-read User|null $executedBy
+ * @property-read User|null $handler
+ * @property-read User|null $delegatedBy
  * @property-read PhoneRequestDetail|null $phoneDetail
  * @property-read SimRequestDetail|null $simDetail
  * @property-read ProfileRequestDetail|null $profileDetail
  */
 #[Fillable([
     'reference', 'type', 'status', 'site_id', 'requester_id', 'beneficiary_id', 'beneficiary_snapshot',
-    'comment', 'policy_accepted_at', 'submitted_at', 'executed_at', 'executed_by_id', 'execution_notes', 'closed_at',
+    'comment', 'policy_accepted_at', 'submitted_at', 'executed_at', 'executed_by_id', 'execution_notes',
+    'handler_id', 'delegated_by_id', 'delegated_at', 'delegation_note', 'closed_at',
 ])]
 class ServiceRequest extends Model
 {
@@ -75,6 +83,7 @@ class ServiceRequest extends Model
             'policy_accepted_at' => 'datetime',
             'submitted_at' => 'datetime',
             'executed_at' => 'datetime',
+            'delegated_at' => 'datetime',
             'closed_at' => 'datetime',
         ];
     }
@@ -108,6 +117,18 @@ class ServiceRequest extends Model
     public function executedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'executed_by_id');
+    }
+
+    /** Membre de l'équipe IT à qui la DSI a confié la commande / l'exécution. @return BelongsTo<User, $this> */
+    public function handler(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'handler_id');
+    }
+
+    /** @return BelongsTo<User, $this> */
+    public function delegatedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'delegated_by_id');
     }
 
     /** @return BelongsTo<Site, $this> */
@@ -184,7 +205,28 @@ class ServiceRequest extends Model
         $query->where(fn (Builder $q) => $q->where('requester_id', $user->id)->orWhere('beneficiary_id', $user->id));
     }
 
+    /** Demandes confiées à cet utilisateur et encore à traiter. @param  Builder<self>  $query */
+    public function scopeHandledBy(Builder $query, User $user): void
+    {
+        $query->where('handler_id', $user->id)->whereIn('status', RequestStatus::fulfilment());
+    }
+
     // ── Comportement ─────────────────────────────────────────────────────────
+
+    /**
+     * Qui peut commander, réceptionner, attribuer ou exécuter : toute l'équipe IT tant que la DSI
+     * n'a rien délégué ; une fois déléguée, seulement le délégataire (et la DSI / l'admin qui gardent la main).
+     */
+    public function canBeFulfilledBy(User $user): bool
+    {
+        if (! $user->hasAnyRole(Role::fulfilment())) {
+            return false;
+        }
+
+        return $this->handler_id === null
+            || $this->handler_id === $user->id
+            || $user->hasAnyRole(Role::delegators());
+    }
 
     /**
      * Seul point d'entrée pour changer le statut.

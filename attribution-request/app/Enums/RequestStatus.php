@@ -125,6 +125,12 @@ enum RequestStatus: string implements HasColor, HasIcon, HasLabel
         return in_array($this, [self::PendingManager, self::PendingBusiness, self::PendingDsi], true);
     }
 
+    /** Phase commande / exécution : la DSI peut la confier à un membre de son équipe. */
+    public function isDelegable(): bool
+    {
+        return in_array($this, [self::Approved, self::Ordering, self::ReadyForAssignment], true);
+    }
+
     /** Étape (1 à 6) de la fiche officielle correspondant à ce statut, pour la frise de suivi. */
     public function stage(RequestType $type = RequestType::Telephony): int
     {

@@ -17,6 +17,7 @@ enum RequestEventType: string implements HasLabel
     case Returned = 'returned';
     case Rejected = 'rejected';
     case Cancelled = 'cancelled';
+    case Delegated = 'delegated';
     case Ordered = 'ordered';
     case Received = 'received';
     case Assigned = 'assigned';
@@ -36,6 +37,7 @@ enum RequestEventType: string implements HasLabel
             self::Returned => __('Renvoyée pour correction'),
             self::Rejected => __('Rejetée'),
             self::Cancelled => __('Annulée'),
+            self::Delegated => __('Confiée à l\'équipe IT'),
             self::Ordered => __('Commandée'),
             self::Received => __('Matériel réceptionné'),
             self::Assigned => __('Équipement remis'),
@@ -57,6 +59,7 @@ enum RequestEventType: string implements HasLabel
             self::Returned => 'arrow-uturn-left',
             self::Rejected => 'x-mark',
             self::Cancelled => 'no-symbol',
+            self::Delegated => 'user-plus',
             self::Ordered => 'shopping-cart',
             self::Received => 'inbox-arrow-down',
             self::Assigned => 'device-phone-mobile',
@@ -74,7 +77,7 @@ enum RequestEventType: string implements HasLabel
             self::Approved, self::ReceiptConfirmed, self::Closed => 'success',
             self::Returned => 'orange',
             self::Rejected, self::Cancelled => 'danger',
-            self::Ordered, self::Received, self::Assigned, self::Executed => 'violet',
+            self::Delegated, self::Ordered, self::Received, self::Assigned, self::Executed => 'violet',
             default => 'gray',
         };
     }

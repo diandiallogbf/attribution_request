@@ -68,7 +68,7 @@ final readonly class SubmitServiceRequest
             $isResubmission = $request->status === RequestStatus::Returned;
 
             $request->fill([
-                'reference' => $request->reference ?? $this->references->next($request->type),
+                'reference' => $request->reference ?? $this->references->next(),
                 'beneficiary_snapshot' => $this->snapshot($request),
                 'policy_accepted_at' => $policyAccepted ? now() : null,
                 'submitted_at' => now(),

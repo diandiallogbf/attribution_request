@@ -43,6 +43,7 @@ final readonly class FulfilTelephonyRequest
         $request = DB::transaction(function () use ($request, $actor, $data, &$handover): ServiceRequest {
             $request = ServiceRequest::query()->whereKey($request->getKey())->lockForUpdate()->firstOrFail();
             $request->load(['beneficiary', 'phoneDetail.previousDevice', 'simDetail.existingSimLine']);
+            $this->ensureCanFulfil($request, $actor, __('attribuer du matériel'));
 
             if (! in_array($request->status, [RequestStatus::Approved, RequestStatus::ReadyForAssignment], true)) {
                 throw InvalidTransitionException::between($request->displayReference(), $request->status, RequestStatus::PendingReceipt);

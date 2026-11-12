@@ -5,6 +5,8 @@ namespace Database\Seeders;
 use App\Enums\DeviceStatus;
 use App\Enums\EmployeeCategory;
 use App\Enums\LineOption;
+use App\Enums\OrderStatus;
+use App\Enums\OrderType;
 use App\Enums\PlanType;
 use App\Enums\Role;
 use App\Enums\SimLineStatus;
@@ -14,10 +16,12 @@ use App\Models\Device;
 use App\Models\DeviceModel;
 use App\Models\Direction;
 use App\Models\Operator;
+use App\Models\Order;
 use App\Models\SimLine;
 use App\Models\Site;
 use App\Models\User;
 use App\Support\Luhn;
+use Carbon\CarbonInterface;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -30,7 +34,7 @@ class DemoSeeder extends Seeder
 {
     private string $password;
 
-    private int $matricule = 10001;
+    private int $matricule = 1001;
 
     public function run(): void
     {
@@ -78,6 +82,9 @@ class DemoSeeder extends Seeder
             Direction::where('code', $code)->update(['director_id' => $director->id]);
         }
 
+        // Finance : suit les dépenses d'attribution, saisit factures et règlements.
+        $this->user('Aminata', 'Condé', 'Comptable fournisseurs', EmployeeCategory::Executive, $dept('DAF', 'Comptabilité'), $agl, roles: [Role::Finance]);
+
         // Parc : équipements déjà attribués + stock disponible
         $operator = Operator::where('code', 'OGN')->firstOrFail();
         $model = fn (string $name) => DeviceModel::where('name', $name)->firstOrFail();
@@ -92,6 +99,41 @@ class DemoSeeder extends Seeder
         foreach (['Guru Music 2', 'Guru Music 2', 'Galaxy A16', 'Galaxy A16', 'Galaxy A16', 'iPhone 16'] as $name) {
             $this->device($model($name), DeviceStatus::InStock);
         }
+
+        // Historique d'achats (réapprovisionnement du stock) à différents stades comptables.
+        $this->order('BC-2609-014', 'Orange Business', $model('Galaxy A16'), 3, 2_100_000, now()->subMonths(2), invoice: ['FAC-OB-2209', 6_300_000, 'paid'], by: $itManager);
+        $this->order('BC-2610-021', 'Orange Business', $model('iPhone 16'), 1, 9_800_000, now()->subMonth(), invoice: ['FAC-OB-2341', 9_800_000], by: $itManager);
+        $this->order('BC-2611-003', 'Guinée Télécom Services', $model('Guru Music 2'), 2, 450_000, now()->subDays(6), by: $itManager);
+    }
+
+    /**
+     * @param  array{0: string, 1: int, 2?: string}|null  $invoice  [n°, montant, 'paid' si réglée]
+     */
+    private function order(string $reference, string $supplier, DeviceModel $model, int $quantity, int $unitPrice, CarbonInterface $at, User $by, ?array $invoice = null): void
+    {
+        $order = Order::create([
+            'reference' => $reference,
+            'type' => OrderType::DevicePurchase,
+            'status' => OrderStatus::Received,
+            'supplier' => $supplier,
+            'ordered_by_id' => $by->id,
+            'ordered_at' => $at,
+            'received_at' => $at->copy()->addDays(5),
+            'total_gnf' => $quantity * $unitPrice,
+            'invoice_reference' => $invoice[0] ?? null,
+            'invoiced_at' => $invoice ? $at->copy()->addDays(7) : null,
+            'invoice_amount_gnf' => $invoice[1] ?? null,
+            'cost_center' => $invoice ? '6056-DSI' : null,
+            'paid_at' => ($invoice[2] ?? null) === 'paid' ? $at->copy()->addDays(25) : null,
+        ]);
+
+        $order->items()->create([
+            'device_model_id' => $model->id,
+            'description' => $model->label,
+            'quantity' => $quantity,
+            'received_quantity' => $quantity,
+            'unit_price_gnf' => $unitPrice,
+        ]);
     }
 
     /**
@@ -112,7 +154,7 @@ class DemoSeeder extends Seeder
         $email ??= strtolower(Str::ascii($firstName.'.'.$lastName)).'@agl.test';
 
         $user = User::updateOrCreate(['email' => $email], [
-            'matricule' => str_pad((string) $this->matricule++, 5, '0', STR_PAD_LEFT),
+            'matricule' => str_pad((string) $this->matricule++, 4, '0', STR_PAD_LEFT),
             'first_name' => $firstName,
             'last_name' => $lastName,
             'job_title' => $jobTitle,

@@ -21,7 +21,18 @@ return new class extends Migration
             $table->timestamp('received_at')->nullable();
             $table->unsignedBigInteger('total_gnf')->nullable();
             $table->text('notes')->nullable();
+            // Comptabilité (saisie par la Finance) : facture fournisseur, imputation, règlement.
+            $table->string('invoice_reference')->nullable();
+            $table->date('invoiced_at')->nullable();
+            $table->unsignedBigInteger('invoice_amount_gnf')->nullable();
+            $table->string('cost_center', 30)->nullable();
+            $table->date('paid_at')->nullable()->index();
+            $table->text('finance_notes')->nullable();
+            $table->foreignId('accounted_by_id')->nullable()->constrained('users')->nullOnDelete();
+            $table->timestamp('accounted_at')->nullable();
             $table->timestamps();
+
+            $table->index('ordered_at');
         });
 
         // Un BC peut regrouper plusieurs demandes, ou servir à réapprovisionner le stock (sans demande).

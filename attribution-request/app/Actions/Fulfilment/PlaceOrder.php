@@ -41,6 +41,7 @@ final class PlaceOrder
         return DB::transaction(function () use ($request, $actor, $type, $reference, $supplier, $expectedAt, $unitPrice, $notes): Order {
             $request = ServiceRequest::query()->whereKey($request->getKey())->lockForUpdate()->firstOrFail();
             $request->load(['phoneDetail.approvedDeviceModel', 'simDetail']);
+            $this->ensureCanFulfil($request, $actor, __('passer une commande'));
 
             if (! in_array($request->status, [RequestStatus::Approved, RequestStatus::Ordering], true)) {
                 throw InvalidTransitionException::between($request->displayReference(), $request->status, RequestStatus::Ordering);

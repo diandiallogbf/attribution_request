@@ -52,7 +52,7 @@ it('envoie la demande au N+1 du bénéficiaire', function () {
     $request = app(SubmitServiceRequest::class)->handle(draftFor($employee, $employee), $employee, policyAccepted: true);
 
     expect($request->status)->toBe(RequestStatus::PendingManager)
-        ->and($request->reference->toStorage())->toBe('TEL-'.now()->year.'-00001')
+        ->and($request->reference->toStorage())->toBe(now()->format('ym').'001')
         ->and($request->beneficiary_snapshot['matricule'])->toBe($employee->matricule->toStorage())
         ->and($request->policy_accepted_at)->not->toBeNull();
 
@@ -120,13 +120,25 @@ it('interdit à un manager de faire une demande pour son propre supérieur', fun
     app(StartTelephonyDraft::class)->handle($manager->fresh(), $director);
 })->throws(UnauthorizedActionException::class);
 
-it('attribue des références séquentielles sans doublon', function () {
+it('attribue des N° de fiche AAMMXXX séquentiels sans doublon', function () {
+    $this->travelTo(now()->setDate(2026, 11, 20));
+
     $references = collect(range(1, 3))->map(function () {
         ['employee' => $employee] = team();
 
         return app(SubmitServiceRequest::class)->handle(draftFor($employee, $employee), $employee, true)->reference->toStorage();
     });
 
-    $year = now()->year;
-    expect($references->all())->toBe(["TEL-{$year}-00001", "TEL-{$year}-00002", "TEL-{$year}-00003"]);
+    expect($references->all())->toBe(['2611001', '2611002', '2611003']);
+});
+
+it('repart à 001 chaque mois', function () {
+    $this->travelTo(now()->setDate(2026, 11, 30));
+    ['employee' => $first] = team();
+    app(SubmitServiceRequest::class)->handle(draftFor($first, $first), $first, true);
+
+    $this->travelTo(now()->setDate(2026, 12, 1));
+    ['employee' => $second] = team();
+
+    expect(app(SubmitServiceRequest::class)->handle(draftFor($second, $second), $second, true)->reference->toStorage())->toBe('2612001');
 });

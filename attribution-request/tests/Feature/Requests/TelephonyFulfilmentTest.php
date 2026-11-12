@@ -5,21 +5,11 @@ use App\Actions\Fulfilment\FulfilTelephonyRequest;
 use App\Actions\Fulfilment\PlaceOrder;
 use App\Actions\Fulfilment\ReceiveOrder;
 use App\Actions\Fulfilment\ServeFromStock;
-use App\Actions\Requests\ApproveByDsi;
-use App\Actions\Requests\DecideApproval;
-use App\Actions\Requests\SaveTelephonyDraft;
-use App\Actions\Requests\StartTelephonyDraft;
-use App\Actions\Requests\SubmitServiceRequest;
 use App\Data\TelephonyFulfilmentData;
-use App\Data\TelephonyRequestData;
-use App\Enums\ApprovalDecision;
 use App\Enums\AttachmentKind;
 use App\Enums\DeviceStatus;
 use App\Enums\OrderStatus;
 use App\Enums\OrderType;
-use App\Enums\PhoneReason;
-use App\Enums\PhoneType;
-use App\Enums\PlanType;
 use App\Enums\RequestStatus;
 use App\Enums\SimAction;
 use App\Enums\SimLineStatus;
@@ -28,7 +18,6 @@ use App\Exceptions\Domain\UnauthorizedActionException;
 use App\Models\Assignment;
 use App\Models\Device;
 use App\Models\DeviceModel;
-use App\Models\ServiceRequest;
 use App\Models\SimLine;
 use App\Models\User;
 use App\Support\Luhn;
@@ -46,33 +35,6 @@ beforeEach(function () {
     $this->it = tap(User::factory()->create())->assignRole('it_agent');
     $this->model = DeviceModel::query()->where('name', 'Galaxy A16')->firstOrFail();
 });
-
-/** Demande téléphone (+ ligne facultative) approuvée par le manager et la DSI. */
-function approvedTelephonyRequest(User $employee, User $manager, User $dsi, DeviceModel $model, ?SimAction $simAction = SimAction::Creation, ?SimLine $line = null): ServiceRequest
-{
-    $draft = app(StartTelephonyDraft::class)->handle($employee, $employee);
-    app(SaveTelephonyDraft::class)->handle($draft, $employee, new TelephonyRequestData(
-        wantsPhone: $simAction !== SimAction::Modification,
-        wantsSim: $simAction !== null,
-        phoneReason: PhoneReason::Acquisition,
-        phoneType: PhoneType::SamsungAndroid,
-        detailedReason: 'Nouveau superviseur de quai, joignable en permanence.',
-        simAction: $simAction,
-        planType: PlanType::Prepaid,
-        existingSimLineId: $line?->id,
-        monthlyRecharge: MoneyGnf::from(200_000),
-    ));
-
-    $request = app(SubmitServiceRequest::class)->handle($draft->fresh(), $employee, true);
-    $request = app(DecideApproval::class)->handle($request, $manager, ApprovalDecision::Approved);
-
-    return app(ApproveByDsi::class)->handle(
-        $request,
-        $dsi,
-        $request->phoneDetail ? $model : null,
-        $simAction?->requiresPlan() ? MoneyGnf::from(200_000) : null,
-    );
-}
 
 it('commande, réceptionne, attribue puis clôture sur confirmation du bénéficiaire', function () {
     $request = approvedTelephonyRequest($this->employee, $this->manager, $this->dsi, $this->model);

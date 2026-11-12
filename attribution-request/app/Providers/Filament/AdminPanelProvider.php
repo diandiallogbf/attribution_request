@@ -55,6 +55,7 @@ class AdminPanelProvider extends PanelProvider
             ->maxContentWidth(Width::Full)
             ->navigationGroups([
                 NavigationGroup::make('Demandes'),
+                NavigationGroup::make('Finance'),
                 NavigationGroup::make('Parc'),
                 NavigationGroup::make('Référentiels'),
                 NavigationGroup::make('Organisation'),

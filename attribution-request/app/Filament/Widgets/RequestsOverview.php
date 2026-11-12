@@ -4,6 +4,7 @@ namespace App\Filament\Widgets;
 
 use App\Enums\DeviceStatus;
 use App\Enums\RequestStatus;
+use App\Enums\Role;
 use App\Filament\Resources\ServiceRequests\ServiceRequestResource;
 use App\Models\Device;
 use App\Models\ServiceRequest;
@@ -16,6 +17,12 @@ class RequestsOverview extends StatsOverviewWidget
     protected static ?int $sort = 1;
 
     protected ?string $pollingInterval = '60s';
+
+    /** La Finance n'a que faire du flux des demandes : elle voit ses propres indicateurs. */
+    public static function canView(): bool
+    {
+        return (bool) auth()->user()?->hasAnyRole([Role::Admin, Role::Dsi, Role::ItManager, Role::ItAgent, Role::Assistant]);
+    }
 
     protected function getStats(): array
     {

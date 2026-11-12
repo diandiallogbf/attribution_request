@@ -39,8 +39,8 @@ enum RequestType: string implements HasLabel
         };
     }
 
-    /** Préfixe de la référence lisible : TEL-2026-00042 / PRF-2026-00007. */
-    public function referencePrefix(): string
+    /** Dossier de classement de la GED (le N° de fiche, lui, est commun aux deux fiches). */
+    public function archiveFolder(): string
     {
         return match ($this) {
             self::Telephony => 'TEL',
@@ -87,16 +87,5 @@ enum RequestType: string implements HasLabel
                 6 => __('Clôture'),
             ],
         };
-    }
-
-    public static function fromReferencePrefix(string $prefix): self
-    {
-        foreach (self::cases() as $case) {
-            if ($case->referencePrefix() === $prefix) {
-                return $case;
-            }
-        }
-
-        throw new \ValueError("Préfixe de référence inconnu : {$prefix}");
     }
 }

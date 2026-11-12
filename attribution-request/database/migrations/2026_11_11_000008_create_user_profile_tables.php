@@ -35,7 +35,7 @@ return new class extends Migration
             // Nouveau collaborateur (création) : identité saisie sur la fiche.
             $table->string('first_name')->nullable();
             $table->string('last_name')->nullable();
-            $table->string('matricule', 5)->nullable();
+            $table->string('matricule', 4)->nullable();
             $table->string('job_title')->nullable();
             $table->string('category')->nullable();
             $table->foreignId('department_id')->nullable()->constrained()->nullOnDelete();

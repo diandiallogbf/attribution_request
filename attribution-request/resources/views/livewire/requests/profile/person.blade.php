@@ -14,7 +14,7 @@
             <div class="grid gap-4 sm:grid-cols-2">
                 <flux:input wire:model.blur="profile.firstName" :label="__('Prénom')" autocomplete="off" />
                 <flux:input wire:model.blur="profile.lastName" :label="__('Nom')" autocomplete="off" />
-                <flux:input wire:model.blur="profile.matricule" :label="__('Matricule')" :badge="__('Si déjà attribué')" placeholder="04217" maxlength="5" inputmode="numeric" />
+                <flux:input wire:model.blur="profile.matricule" :label="__('Matricule')" :badge="__('Si déjà attribué')" placeholder="0421" maxlength="4" inputmode="numeric" />
                 <flux:input wire:model.blur="profile.jobTitle" :label="__('Fonction')" :placeholder="__('Ex. : Agent de pointage')" />
             </div>
         </x-form-section>

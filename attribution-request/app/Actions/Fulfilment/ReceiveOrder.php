@@ -44,6 +44,9 @@ final class ReceiveOrder
             $order = Order::query()->whereKey($order->getKey())->lockForUpdate()->firstOrFail();
             $order->load('items.serviceRequest.simDetail');
 
+            $order->items->pluck('serviceRequest')->filter()->unique('id')
+                ->each(fn (ServiceRequest $request) => $this->ensureCanFulfil($request, $actor, __('réceptionner une commande')));
+
             if (! in_array($order->status, [OrderStatus::Sent, OrderStatus::PartiallyReceived], true)) {
                 throw new InvalidTransitionException(__('Cette commande est « :status » : elle ne peut pas être réceptionnée.', ['status' => $order->status->getLabel()]));
             }

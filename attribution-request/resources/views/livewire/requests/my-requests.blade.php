@@ -26,7 +26,7 @@
             </nav>
 
             <div class="sm:w-64">
-                <flux:input wire:model.live.debounce.300ms="search" icon="magnifying-glass" size="sm" :placeholder="__('Référence (TEL-2026-…)')" clearable />
+                <flux:input wire:model.live.debounce.300ms="search" icon="magnifying-glass" size="sm" :placeholder="__('N° de fiche (ex. 2611541)')" clearable />
             </div>
         </div>
 

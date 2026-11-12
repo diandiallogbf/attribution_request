@@ -67,7 +67,7 @@ class UserResource extends Resource
                 TextInput::make('first_name')->label('Prénom')->required()->maxLength(60),
                 TextInput::make('last_name')->label('Nom')->required()->maxLength(60),
                 TextInput::make('nickname')->label('Surnom')->maxLength(60),
-                TextInput::make('matricule')->label('Matricule')->maxLength(5)->unique(ignoreRecord: true)
+                TextInput::make('matricule')->label('Matricule')->maxLength(4)->unique(ignoreRecord: true)
                     ->rules([new ValidValueObject(Matricule::class)]),
                 TextInput::make('email')->label('E-mail professionnel')->email()->required()->unique(ignoreRecord: true),
                 TextInput::make('job_title')->label('Fonction')->maxLength(100),

@@ -2,7 +2,10 @@
 
 namespace App\Filament\Resources\Orders;
 
+use App\Actions\Finance\RecordOrderAccounting;
 use App\Actions\Fulfilment\ReceiveOrder;
+use App\Data\OrderAccountingData;
+use App\Enums\AccountingStatus;
 use App\Enums\OrderStatus;
 use App\Enums\OrderType;
 use App\Enums\Role;
@@ -18,19 +21,26 @@ use App\Rules\UniqueValueObject;
 use App\Rules\ValidValueObject;
 use App\ValueObjects\Iccid;
 use App\ValueObjects\Imei;
+use App\ValueObjects\MoneyGnf;
 use App\ValueObjects\PhoneNumber;
 use BackedEnum;
 use Filament\Actions\Action;
+use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Grid;
 use Filament\Support\Enums\FontFamily;
 use Filament\Support\Icons\Heroicon;
+use Filament\Tables\Columns\Summarizers\Sum;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Date;
 use UnitEnum;
 
 /** Bons de commande et demandes opérateur (étape 04), réception en stock. */
@@ -56,7 +66,7 @@ class OrderResource extends Resource
 
     protected static function allowedRoles(): array
     {
-        return Role::fulfilment();
+        return array_values(array_unique([...Role::fulfilment(), ...Role::financeReaders()], SORT_REGULAR));
     }
 
     public static function canCreate(): bool
@@ -78,6 +88,9 @@ class OrderResource extends Resource
 
     public static function table(Table $table): Table
     {
+        $isFinanceReader = fn (): bool => (bool) auth()->user()?->hasAnyRole(Role::financeReaders());
+        $sumFormat = fn ($state): string => MoneyGnf::from((int) $state)->format();
+
         return $table
             ->modifyQueryUsing(fn (Builder $query) => $query->with(['items.serviceRequest', 'items.deviceModel', 'operator', 'orderedBy']))
             ->defaultSort('ordered_at', 'desc')
@@ -97,19 +110,106 @@ class OrderResource extends Resource
                 TextColumn::make('ordered_at')->label('Commandée')->date('d/m/Y')->sortable(),
                 TextColumn::make('expected_at')->label('Livraison prévue')->date('d/m/Y')->placeholder('—')
                     ->color(fn (Order $record): ?string => $record->expected_at?->isPast() && $record->status === OrderStatus::Sent ? 'danger' : null),
-                TextColumn::make('total_gnf')->label('Montant')->formatStateUsing(fn ($state) => $state?->format())->placeholder('—')->alignEnd()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('total_gnf')->label('Montant BC')->formatStateUsing(fn ($state) => $state?->format())->placeholder('—')->alignEnd()
+                    ->summarize(Sum::make()->label('Total BC')->formatStateUsing($sumFormat))
+                    ->toggleable(isToggledHiddenByDefault: ! $isFinanceReader()),
+                TextColumn::make('invoice_amount_gnf')->label('Facture')->formatStateUsing(fn ($state) => $state?->format())->placeholder('—')->alignEnd()
+                    ->description(fn (Order $record): ?string => $record->invoice_reference
+                        ? 'N° '.$record->invoice_reference.($record->invoiced_at ? ' du '.$record->invoiced_at->format('d/m/Y') : '')
+                        : null)
+                    ->summarize(Sum::make()->label('Total facturé')->formatStateUsing($sumFormat))
+                    ->toggleable(isToggledHiddenByDefault: ! $isFinanceReader()),
+                TextColumn::make('accounting')->label('Comptabilité')->badge()
+                    ->state(fn (Order $record): AccountingStatus => $record->accountingStatus())
+                    ->description(fn (Order $record): ?string => $record->paid_at ? 'Réglée le '.$record->paid_at->format('d/m/Y') : $record->cost_center)
+                    ->toggleable(isToggledHiddenByDefault: ! $isFinanceReader()),
             ])
             ->filters([
                 SelectFilter::make('status')->label('Statut')->options(OrderStatus::class),
                 SelectFilter::make('type')->label('Type')->options(OrderType::class),
+                SelectFilter::make('accounting')
+                    ->label('Comptabilité')
+                    ->options(AccountingStatus::class)
+                    ->query(fn (Builder $query, array $data): Builder => $query->when(
+                        AccountingStatus::tryFrom((string) ($data['value'] ?? '')),
+                        fn (Builder $query, AccountingStatus $status) => $status->applyTo($query),
+                    )),
+                Filter::make('period')
+                    ->label('Période de commande')
+                    ->schema([
+                        DatePicker::make('from')->label('Commandées du')->native(false)->displayFormat('d/m/Y'),
+                        DatePicker::make('until')->label('au')->native(false)->displayFormat('d/m/Y'),
+                    ])
+                    ->columns(2)
+                    ->query(fn (Builder $query, array $data): Builder => $query
+                        ->when($data['from'] ?? null, fn (Builder $query, $date) => $query->whereDate('ordered_at', '>=', $date))
+                        ->when($data['until'] ?? null, fn (Builder $query, $date) => $query->whereDate('ordered_at', '<=', $date)))
+                    ->indicateUsing(function (array $data): ?string {
+                        $from = filled($data['from'] ?? null) ? Date::parse($data['from'])->format('d/m/Y') : null;
+                        $until = filled($data['until'] ?? null) ? Date::parse($data['until'])->format('d/m/Y') : null;
+
+                        return match (true) {
+                            $from && $until => "Du {$from} au {$until}",
+                            (bool) $from => "Depuis le {$from}",
+                            (bool) $until => "Jusqu'au {$until}",
+                            default => null,
+                        };
+                    }),
             ])
+            ->filtersFormColumns(2)
             ->recordActions([
+                Action::make('accounting')
+                    ->label('Comptabiliser')
+                    ->icon(Heroicon::OutlinedCalculator)
+                    ->color('gray')
+                    ->visible(fn (Order $record): bool => $record->status !== OrderStatus::Cancelled && (bool) auth()->user()?->hasAnyRole(Role::accounting()))
+                    ->modalHeading(fn (Order $record): string => 'Comptabilité — '.($record->reference ?? $record->type->getLabel()))
+                    ->modalSubmitActionLabel('Enregistrer')
+                    ->modalDescription(fn (Order $record): string => 'Montant du bon de commande : '.($record->total_gnf?->format() ?? 'non renseigné').'. La facture fait foi dans les dépenses dès qu\'elle est saisie.')
+                    ->fillForm(fn (Order $record): array => [
+                        'invoice_reference' => $record->invoice_reference,
+                        'invoiced_at' => $record->invoiced_at?->toDateString(),
+                        'invoice_amount' => $record->invoice_amount_gnf?->amount ?? $record->total_gnf?->amount,
+                        'cost_center' => $record->cost_center,
+                        'paid_at' => $record->paid_at?->toDateString(),
+                        'finance_notes' => $record->finance_notes,
+                    ])
+                    ->schema([Grid::make(2)->schema([
+                        TextInput::make('invoice_reference')->label('N° de facture')->maxLength(100),
+                        DatePicker::make('invoiced_at')->label('Date de facture')->native(false)->displayFormat('d/m/Y')->maxDate(now())
+                            ->requiredWith('invoice_reference'),
+                        TextInput::make('invoice_amount')->label('Montant facturé (GNF)')->numeric()->minValue(0)->step(1)
+                            ->requiredWith('invoice_reference'),
+                        TextInput::make('cost_center')->label('Imputation (compte / centre de coût)')->maxLength(30),
+                        DatePicker::make('paid_at')->label('Réglée le')->native(false)->displayFormat('d/m/Y')->maxDate(now())
+                            ->helperText('Laisser vide tant que la facture n\'est pas payée.'),
+                        Textarea::make('finance_notes')->label('Notes comptables')->rows(2)->columnSpanFull(),
+                    ])])
+                    ->action(function (Order $record, array $data): void {
+                        try {
+                            app(RecordOrderAccounting::class)->handle($record, auth()->user(), new OrderAccountingData(
+                                invoiceReference: $data['invoice_reference'] ?? null,
+                                invoicedAt: filled($data['invoiced_at'] ?? null) ? Date::parse($data['invoiced_at']) : null,
+                                invoiceAmount: filled($data['invoice_amount'] ?? null) ? MoneyGnf::from((int) $data['invoice_amount']) : null,
+                                costCenter: $data['cost_center'] ?? null,
+                                paidAt: filled($data['paid_at'] ?? null) ? Date::parse($data['paid_at']) : null,
+                                notes: $data['finance_notes'] ?? null,
+                            ));
+                        } catch (DomainException $exception) {
+                            Notification::make()->danger()->title($exception->title())->body($exception->getMessage())->persistent()->send();
+
+                            return;
+                        }
+
+                        Notification::make()->success()->title('Écriture enregistrée')->send();
+                    }),
                 Action::make('receive')
                     ->label('Réceptionner')
                     ->icon(Heroicon::OutlinedInboxArrowDown)
                     ->button()
-                    ->visible(fn (Order $record): bool => in_array($record->status, [OrderStatus::Sent, OrderStatus::PartiallyReceived], true))
+                    ->visible(fn (Order $record): bool => in_array($record->status, [OrderStatus::Sent, OrderStatus::PartiallyReceived], true)
+                        && (bool) auth()->user()?->hasAnyRole(Role::fulfilment())
+                        && $record->items->pluck('serviceRequest')->filter()->every(fn ($request): bool => $request->canBeFulfilledBy(auth()->user())))
                     ->modalHeading(fn (Order $record): string => 'Réception — '.$record->type->getLabel())
                     ->modalDescription('Le matériel reçu entre en stock ; les demandes concernées passent « Prête à attribuer ».')
                     ->fillForm(fn (Order $record): array => [

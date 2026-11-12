@@ -72,7 +72,7 @@ class MyRequests extends Component
         return $this->baseQuery()
             ->with(['beneficiary', 'phoneDetail', 'simDetail', 'profileDetail'])
             ->when($statuses, fn (Builder $query) => $query->whereIn('status', $statuses))
-            ->when(trim($this->search) !== '', fn (Builder $query) => $query->where('reference', 'like', '%'.strtoupper(trim($this->search)).'%'))
+            ->when(trim($this->search) !== '', fn (Builder $query) => $query->where('reference', 'like', '%'.preg_replace('/\s+/', '', $this->search).'%'))
             ->latest('updated_at')
             ->paginate(10);
     }

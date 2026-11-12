@@ -130,6 +130,16 @@ class ServiceRequestInfolist
                         TextEntry::make('status')->label('Statut')->badge(),
                         TextEntry::make('reference')->label('Référence')->copyable(),
                         TextEntry::make('submitted_at')->label('Soumise le')->dateTime('d/m/Y H:i'),
+                        TextEntry::make('handler.name')->label('Traitée par')
+                            ->visible(fn (ServiceRequest $record): bool => $record->handler_id !== null)
+                            ->icon(Heroicon::OutlinedUserCircle)
+                            ->color('violet')
+                            ->helperText(fn (ServiceRequest $record): ?string => $record->delegated_at
+                                ? 'Déléguée par '.($record->delegatedBy?->name ?? 'la DSI').' le '.$record->delegated_at->format('d/m/Y à H:i')
+                                : null),
+                        TextEntry::make('delegation_note')->label('Consignes de la DSI')
+                            ->visible(fn (ServiceRequest $record): bool => filled($record->delegation_note))
+                            ->color('gray'),
                         TextEntry::make('allowance')->label('Grille de dotation')
                             ->visible(fn (ServiceRequest $record): bool => $isTelephony($record) && $record->beneficiary !== null)
                             ->state(function (ServiceRequest $record): string {

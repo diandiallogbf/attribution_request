@@ -5,7 +5,7 @@ namespace App\ValueObjects;
 use App\Exceptions\Domain\InvalidValueException;
 use App\ValueObjects\Concerns\IsValueObject;
 
-/** Matricule AGL : exactement 5 chiffres (les zéros de tête sont conservés). */
+/** Matricule AGL : exactement 4 chiffres (les zéros de tête sont conservés). */
 final readonly class Matricule implements ValueObject
 {
     use IsValueObject;
@@ -16,8 +16,8 @@ final readonly class Matricule implements ValueObject
     {
         $normalized = preg_replace('/\s+/', '', (string) $value);
 
-        if (! preg_match('/^\d{5}$/', $normalized)) {
-            throw InvalidValueException::for(self::class, $value, __('Le matricule doit contenir exactement 5 chiffres (ex. 04217).'));
+        if (! preg_match('/^\d{4}$/', $normalized)) {
+            throw InvalidValueException::for(self::class, $value, __('Le matricule doit contenir exactement 4 chiffres (ex. 0421).'));
         }
 
         return new self($normalized);

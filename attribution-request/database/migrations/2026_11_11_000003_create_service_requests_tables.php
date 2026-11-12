@@ -32,22 +32,25 @@ return new class extends Migration
             $table->timestamp('executed_at')->nullable();
             $table->foreignId('executed_by_id')->nullable()->constrained('users')->nullOnDelete();
             $table->text('execution_notes')->nullable();
+            // Délégation DSI : la commande / l'exécution est confiée à un membre de l'équipe IT.
+            $table->foreignId('handler_id')->nullable()->constrained('users')->nullOnDelete();
+            $table->foreignId('delegated_by_id')->nullable()->constrained('users')->nullOnDelete();
+            $table->timestamp('delegated_at')->nullable();
+            $table->text('delegation_note')->nullable(); // consignes internes, non montrées au collaborateur
             $table->timestamp('closed_at')->nullable();
             $table->timestamps();
             $table->softDeletes();
 
             $table->index(['beneficiary_id', 'status']);
             $table->index(['requester_id', 'status']);
+            $table->index(['handler_id', 'status']);
         });
 
-        // Compteur annuel par type, verrouillé en transaction : pas de doublon de référence.
+        // Compteur mensuel (« 2611 »), commun aux deux fiches, verrouillé en transaction : pas de doublon de N° de fiche.
         Schema::create('request_sequences', function (Blueprint $table) {
             $table->id();
-            $table->string('prefix', 5);
-            $table->unsignedSmallInteger('year');
+            $table->char('period', 4)->unique();
             $table->unsignedInteger('last_number')->default(0);
-
-            $table->unique(['prefix', 'year']);
         });
 
         // Une ligne par validation attendue. Plusieurs lignes pour une même étape = validations parallèles.

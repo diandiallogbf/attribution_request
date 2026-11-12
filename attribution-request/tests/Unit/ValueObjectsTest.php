@@ -1,6 +1,5 @@
 <?php
 
-use App\Enums\RequestType;
 use App\Exceptions\Domain\InvalidValueException;
 use App\Support\Luhn;
 use App\ValueObjects\Iccid;
@@ -11,17 +10,17 @@ use App\ValueObjects\PhoneNumber;
 use App\ValueObjects\RequestReference;
 
 describe('Matricule', function () {
-    it('accepte exactement 5 chiffres et conserve les zéros de tête', function () {
-        expect(Matricule::from('04217')->toStorage())->toBe('04217')
-            ->and(Matricule::from(' 12345 ')->toStorage())->toBe('12345');
+    it('accepte exactement 4 chiffres et conserve les zéros de tête', function () {
+        expect(Matricule::from('0421')->toStorage())->toBe('0421')
+            ->and(Matricule::from(' 1234 ')->toStorage())->toBe('1234');
     });
 
     it('refuse tout autre format', function (string $value) {
         Matricule::from($value);
-    })->throws(InvalidValueException::class)->with(['1234', '123456', 'A1234', '']);
+    })->throws(InvalidValueException::class)->with(['123', '12345', 'A123', '']);
 
     it('compare par valeur', function () {
-        expect(Matricule::from('00001')->equals(Matricule::from('00001')))->toBeTrue();
+        expect(Matricule::from('0001')->equals(Matricule::from('0001')))->toBeTrue();
     });
 });
 
@@ -87,14 +86,21 @@ describe('MoneyGnf', function () {
 });
 
 describe('RequestReference', function () {
-    it('fait l\'aller-retour chaîne ↔ objet', function () {
-        $reference = RequestReference::make(RequestType::Telephony, 2026, 42);
+    it('suit le format AA MM XXX : 2611541 = novembre 2026, n° 541', function () {
+        $reference = RequestReference::make(2026, 11, 541);
 
-        expect($reference->toStorage())->toBe('TEL-2026-00042')
-            ->and(RequestReference::from('TEL-2026-00042')->equals($reference))->toBeTrue();
+        expect($reference->toStorage())->toBe('2611541')
+            ->and($reference->spaced())->toBe('26 11 541')
+            ->and(RequestReference::from('26 11 541')->equals($reference))->toBeTrue()
+            ->and(RequestReference::make(2027, 1, 7)->toStorage())->toBe('2701007');
     });
 
-    it('refuse un préfixe inconnu', function () {
-        RequestReference::from('XYZ-2026-00001');
-    })->throws(InvalidValueException::class);
+    it('s\'allonge au-delà de 999 fiches dans le mois au lieu de bloquer', function () {
+        expect(RequestReference::make(2026, 11, 1000)->toStorage())->toBe('26111000')
+            ->and(RequestReference::from('26111000')->sequence)->toBe(1000);
+    });
+
+    it('refuse un format ou un mois invalide', function (string $value) {
+        RequestReference::from($value);
+    })->throws(InvalidValueException::class)->with(['261354', '2613001', '2600001', '2611000', 'TEL-2026-00001']);
 });
